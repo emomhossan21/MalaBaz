@@ -1,22 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User as UserIcon, LogIn, LogOut, X, Plus, Minus, CheckCircle, Package, Search, ArrowRight, Star, Moon, Sun, Settings, Trash2, Edit2, PlusCircle, Save, Upload } from 'lucide-react';
+import { ShoppingCart, User as UserIcon, LogIn, LogOut, X, Plus, Minus, CheckCircle, Package, Search, ArrowRight, ArrowLeft, Star, Moon, Sun, Settings, Trash2, Edit2, PlusCircle, Save, Upload, BarChart2, Shield, MessageSquare, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, User, CartItem } from './types';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import OrdersManager from './components/OrdersManager';
+import AdminsManager from './components/AdminsManager';
+import AdminProfile from './components/AdminProfile';
+import ShippingPolicy from './components/ShippingPolicy';
+import FAQ from './components/FAQ';
+import ContactUs from './components/ContactUs';
+import UserSupport from './components/UserSupport';
+import AdminSupport from './components/AdminSupport';
+import AboutUs from './components/AboutUs';
+import SubscribersManager from './components/SubscribersManager';
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userOrders, setUserOrders] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'shipping' | 'success'>('cart');
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'shipping' | 'payment' | 'success'>('cart');
+  const [shippingDetails, setShippingDetails] = useState({ address: '', city: '', zipCode: '' });
+  const [paymentDetails, setPaymentDetails] = useState({ method: 'cod', transactionId: '', phone: '' });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminUser, setAdminUser] = useState<{id: number, name: string, email: string, profile_photo?: string} | null>(null);
+
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subscribeEmail) return;
+    setSubscribeStatus('loading');
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: subscribeEmail })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSubscribeStatus('success');
+        setSubscribeEmail('');
+        setSubscribeMessage('Successfully subscribed!');
+        setTimeout(() => setSubscribeStatus('idle'), 3000);
+      } else {
+        setSubscribeStatus('error');
+        setSubscribeMessage(data.error || 'Subscription failed');
+        setTimeout(() => setSubscribeStatus('idle'), 3000);
+      }
+    } catch (err) {
+      setSubscribeStatus('error');
+      setSubscribeMessage('Network error');
+      setTimeout(() => setSubscribeStatus('idle'), 3000);
+    }
+  };
+
   const [config, setConfig] = useState<Record<string, string>>({
     brand_story_image: 'https://images.unsplash.com/photo-1564121211835-e88c852648ab?auto=format&fit=crop&q=80&w=800',
     aesthetic_refinement_image: 'https://images.unsplash.com/photo-1573855619003-97b4799dcd8b?auto=format&fit=crop&q=80&w=1920',
@@ -25,6 +75,13 @@ export default function App() {
   const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showOrdersManager, setShowOrdersManager] = useState(false);
+  const [showAdminsManager, setShowAdminsManager] = useState(false);
+  const [showAdminProfile, setShowAdminProfile] = useState(false);
+  const [showAdminSupport, setShowAdminSupport] = useState(false);
+  const [showSubscribersManager, setShowSubscribersManager] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [activePage, setActivePage] = useState<'home' | 'shipping' | 'faq' | 'contact' | 'support' | 'about'>('home');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -94,6 +151,15 @@ export default function App() {
     }));
   };
 
+  useEffect(() => {
+    if (isProfileOpen && user) {
+      fetch(`/api/users/${user.id}/orders`)
+        .then(res => res.json())
+        .then(setUserOrders)
+        .catch(console.error);
+    }
+  }, [isProfileOpen, user]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/signup';
@@ -119,13 +185,16 @@ export default function App() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: adminPassword })
+      body: JSON.stringify({ email: adminEmail, password: adminPassword })
     });
     if (res.ok) {
+      const data = await res.json();
       setIsAdminAuthenticated(true);
+      setAdminUser(data.admin);
+      setAdminEmail('');
       setAdminPassword('');
     } else {
-      alert('Invalid admin password');
+      alert('Invalid admin credentials');
     }
   };
 
@@ -271,22 +340,46 @@ export default function App() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!user) {
       setAuthMode('login');
       setIsAuthOpen(true);
       return;
     }
+    setCheckoutStep('shipping');
+  };
+
+  const submitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, items: cart, total })
+      body: JSON.stringify({ 
+        userId: user.id, 
+        items: cart, 
+        total,
+        shippingAddress: shippingDetails.address,
+        city: shippingDetails.city,
+        zipCode: shippingDetails.zipCode,
+        paymentMethod: paymentDetails.method,
+        transactionId: paymentDetails.transactionId,
+        paymentPhone: paymentDetails.phone
+      })
     });
     if (res.ok) {
       setCheckoutStep('success');
       setCart([]);
+      setShippingDetails({ address: '', city: '', zipCode: '' });
+      setPaymentDetails({ method: 'cod', transactionId: '', phone: '' });
     }
+  };
+
+  const handleShippingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCheckoutStep('payment');
   };
 
   const filteredProducts = products.filter(p => {
@@ -304,7 +397,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-[#b8860b]/20 dark:selection:bg-[#b8860b]/30 selection:text-[#b8860b] dark:selection:text-[#b8860b] transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-black font-sans text-slate-900 dark:text-slate-100 selection:bg-[#b8860b]/20 dark:selection:bg-[#b8860b]/30 selection:text-[#b8860b] dark:selection:text-[#b8860b] transition-colors duration-300">
       {/* Navigation */}
       <nav className="sticky top-0 z-40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -321,9 +414,9 @@ export default function App() {
               <span className="text-[10px] font-bold tracking-[0.3em] text-[#1a2a44]/60 dark:text-slate-400 ml-0.5 mt-0.5">CLOTHING</span>
             </motion.div>
             <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-500 dark:text-slate-400">
-              <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">New Arrivals</a>
-              <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Collections</a>
-              <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Best Sellers</a>
+              <button onClick={() => setActivePage('home')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Home</button>
+              <button onClick={() => setActivePage('home')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Collections</button>
+              <button onClick={() => setActivePage('contact')} className="hover:text-slate-900 dark:hover:text-white transition-colors">Contact</button>
             </div>
           </div>
 
@@ -349,7 +442,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <button className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">
+                  <button onClick={() => setIsProfileOpen(true)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors">
                     <UserIcon size={20} className="text-slate-600 dark:text-slate-400" />
                   </button>
                   <button onClick={() => setUser(null)} className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-2xl transition-colors">
@@ -387,8 +480,22 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden">
+      {activePage !== 'home' && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <button 
+            onClick={() => setActivePage('home')}
+            className="flex items-center gap-2 text-slate-500 hover:text-[#b8860b] dark:text-slate-400 dark:hover:text-[#b8860b] transition-colors font-bold"
+          >
+            <ArrowLeft size={20} />
+            Back to Home
+          </button>
+        </div>
+      )}
+
+      {activePage === 'home' ? (
+        <>
+          {/* Hero Section */}
+          <header className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden">
         <img 
           src={config.hero_image} 
           className="absolute inset-0 w-full h-full object-cover"
@@ -561,7 +668,7 @@ export default function App() {
                     <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Customer Support</span>
                   </div>
                 </div>
-                <button className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">
+                <button onClick={() => setActivePage('about')} className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors">
                   Learn More About Us
                 </button>
               </motion.div>
@@ -589,22 +696,39 @@ export default function App() {
             <p className="text-slate-400 text-lg mb-12 leading-relaxed max-w-md">
               Subscribe to get early access to new drops, exclusive offers, and curated style guides.
             </p>
-            <form className="flex flex-col sm:flex-row gap-4">
+            <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-4">
               <input 
                 type="email" 
+                required
+                value={subscribeEmail}
+                onChange={(e) => setSubscribeEmail(e.target.value)}
                 placeholder="Enter your email" 
                 className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-white placeholder:text-slate-500 outline-none focus:border-[#b8860b] focus:bg-white/10 transition-all"
               />
-              <button className="bg-[#b8860b] text-white px-10 py-5 rounded-2xl font-bold hover:bg-[#d4a017] transition-all active:scale-95 whitespace-nowrap shadow-lg shadow-[#b8860b]/20">
-                Subscribe Now
+              <button disabled={subscribeStatus === 'loading'} type="submit" className="bg-[#b8860b] text-white px-10 py-5 rounded-2xl font-bold hover:bg-[#d4a017] transition-all active:scale-95 whitespace-nowrap shadow-lg shadow-[#b8860b]/20 disabled:opacity-70">
+                {subscribeStatus === 'loading' ? 'Subscribing...' : 'Subscribe Now'}
               </button>
             </form>
+            {subscribeStatus === 'success' && <p className="text-green-400 text-sm mt-4 font-bold">{subscribeMessage}</p>}
+            {subscribeStatus === 'error' && <p className="text-red-400 text-sm mt-4 font-bold">{subscribeMessage}</p>}
             <p className="text-slate-500 text-[10px] mt-8 uppercase tracking-widest font-bold opacity-50">
               By subscribing, you agree to our Privacy Policy and Terms of Service.
             </p>
           </div>
         </div>
       </section>
+        </>
+      ) : activePage === 'shipping' ? (
+        <ShippingPolicy />
+      ) : activePage === 'faq' ? (
+        <FAQ />
+      ) : activePage === 'contact' ? (
+        <ContactUs config={config} />
+      ) : activePage === 'support' ? (
+        <UserSupport user={user} />
+      ) : activePage === 'about' ? (
+        <AboutUs />
+      ) : null}
 
       {/* Cart Sidebar */}
       <AnimatePresence>
@@ -621,16 +745,18 @@ export default function App() {
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col"
+              className={`fixed right-0 top-0 bottom-0 ${checkoutStep === 'cart' ? 'w-full max-w-md' : 'w-full'} bg-white dark:bg-slate-900 z-50 shadow-2xl flex flex-col transition-all duration-300`}
             >
               <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <h3 className="text-xl font-bold dark:text-white">Your Cart</h3>
+                <h3 className="text-xl font-bold dark:text-white">
+                  {checkoutStep === 'cart' ? 'Your Cart' : checkoutStep === 'shipping' ? 'Shipping Details' : checkoutStep === 'payment' ? 'Payment Method' : 'Checkout'}
+                </h3>
                 <button onClick={() => { setIsCartOpen(false); setCheckoutStep('cart'); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full dark:text-white">
                   <X size={24} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className={`flex-1 overflow-y-auto p-6 ${checkoutStep !== 'cart' ? 'max-w-3xl mx-auto w-full' : ''}`}>
                 {checkoutStep === 'success' ? (
                   <div className="h-full flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-[#b8860b]/10 dark:bg-[#b8860b]/20 text-[#b8860b] rounded-full flex items-center justify-center mb-4">
@@ -644,6 +770,80 @@ export default function App() {
                     >
                       Continue Shopping
                     </button>
+                  </div>
+                ) : checkoutStep === 'shipping' ? (
+                  <div className="h-full flex flex-col">
+                    <h4 className="text-xl font-bold mb-6 dark:text-white">Shipping Details</h4>
+                    <form id="shipping-form" onSubmit={handleShippingSubmit} className="space-y-4 flex-1">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Full Address</label>
+                        <textarea 
+                          required
+                          value={shippingDetails.address}
+                          onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})}
+                          className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white h-24 resize-none"
+                          placeholder="House, Street, Area"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">City</label>
+                          <input 
+                            required
+                            type="text" 
+                            value={shippingDetails.city}
+                            onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white"
+                            placeholder="Dhaka"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Zip Code</label>
+                          <input 
+                            required
+                            type="text" 
+                            value={shippingDetails.zipCode}
+                            onChange={e => setShippingDetails({...shippingDetails, zipCode: e.target.value})}
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white"
+                            placeholder="1200"
+                          />
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                ) : checkoutStep === 'payment' ? (
+                  <div className="h-full flex flex-col">
+                    <h4 className="text-xl font-bold mb-6 dark:text-white">Select Payment Method</h4>
+                    <form id="payment-form" onSubmit={submitOrder} className="space-y-4 flex-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {['cod', 'bkash', 'nagad', 'rocket'].map(method => (
+                          <label key={method} className={`block p-4 border rounded-xl cursor-pointer transition-colors ${paymentDetails.method === method ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                            <div className="flex items-center gap-3">
+                              <input type="radio" name="paymentMethod" value={method} checked={paymentDetails.method === method} onChange={() => setPaymentDetails({...paymentDetails, method: method as any})} className="w-4 h-4 text-slate-900" />
+                              <span className="font-bold uppercase tracking-wider dark:text-white">
+                                {method === 'cod' ? 'Cash on Delivery' : method}
+                              </span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      {paymentDetails.method !== 'cod' && (
+                        <div className="mt-6 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            Please send ৳{cartTotal.toLocaleString()} to our {paymentDetails.method.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white">01XXXXXXXXX</strong>
+                          </p>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">{paymentDetails.method.toUpperCase()} Number</label>
+                            <input required type="tel" value={paymentDetails.phone} onChange={e => setPaymentDetails({...paymentDetails, phone: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="01XXXXXXXXX" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Transaction ID</label>
+                            <input required type="text" value={paymentDetails.transactionId} onChange={e => setPaymentDetails({...paymentDetails, transactionId: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="TrxID" />
+                          </div>
+                        </div>
+                      )}
+                    </form>
                   </div>
                 ) : cart.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-400">
@@ -686,8 +886,54 @@ export default function App() {
                     onClick={handleCheckout}
                     className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
                   >
-                    Checkout
+                    Proceed to Checkout
                   </button>
+                </div>
+              )}
+              {checkoutStep === 'shipping' && (
+                <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <div className="max-w-3xl mx-auto w-full">
+                    <div className="flex justify-between mb-4">
+                      <span className="text-slate-500 dark:text-slate-400">Total to pay</span>
+                      <span className="font-bold text-lg dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                    </div>
+                    <button 
+                      type="submit"
+                      form="shipping-form"
+                      className="w-full bg-[#b8860b] text-white py-4 rounded-xl font-bold hover:bg-[#9a700a] transition-colors"
+                    >
+                      Continue to Payment
+                    </button>
+                    <button 
+                      onClick={() => setCheckoutStep('cart')}
+                      className="w-full mt-3 bg-transparent text-slate-500 dark:text-slate-400 py-2 rounded-xl font-bold hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Back to Cart
+                    </button>
+                  </div>
+                </div>
+              )}
+              {checkoutStep === 'payment' && (
+                <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                  <div className="max-w-3xl mx-auto w-full">
+                    <div className="flex justify-between mb-4">
+                      <span className="text-slate-500 dark:text-slate-400">Total to pay</span>
+                      <span className="font-bold text-lg dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                    </div>
+                    <button 
+                      type="submit"
+                      form="payment-form"
+                      className="w-full bg-[#b8860b] text-white py-4 rounded-xl font-bold hover:bg-[#9a700a] transition-colors"
+                    >
+                      Confirm Order
+                    </button>
+                    <button 
+                      onClick={() => setCheckoutStep('shipping')}
+                      className="w-full mt-3 bg-transparent text-slate-500 dark:text-slate-400 py-2 rounded-xl font-bold hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Back to Shipping
+                    </button>
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -770,6 +1016,88 @@ export default function App() {
                     {authMode === 'login' ? 'Sign Up' : 'Log In'}
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Profile Modal */}
+      <AnimatePresence>
+        {isProfileOpen && user && (
+          <div className="fixed inset-0 z-[65] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsProfileOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-bold dark:text-white">My Profile</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{user.name} ({user.email})</p>
+                </div>
+                <button onClick={() => setIsProfileOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full dark:text-white"><X size={20} /></button>
+              </div>
+              
+              <div className="p-8 overflow-y-auto flex-1">
+                <h4 className="text-lg font-bold mb-6 dark:text-white">Order History</h4>
+                {userOrders.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                    <Package size={48} className="mx-auto mb-4 opacity-20" />
+                    <p>You haven't placed any orders yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {userOrders.map((order) => (
+                      <div key={order.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl p-6 bg-slate-50 dark:bg-slate-800/50">
+                        <div className="flex justify-between items-start mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+                          <div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Order #{order.id}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{new Date(order.created_at).toLocaleDateString()}</p>
+                            {order.payment_method && (
+                              <div className="text-xs mt-2 text-slate-500 dark:text-slate-400">
+                                Payment: <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{order.payment_method}</span>
+                                {order.payment_method !== 'cod' && order.transaction_id && ` (TrxID: ${order.transaction_id})`}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
+                              order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              order.status === 'delivered' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'approved' ? 'bg-purple-100 text-purple-800' :
+                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-slate-100 text-slate-800'
+                            }`}>
+                              {order.status || 'pending'}
+                            </span>
+                            <p className="font-bold dark:text-white">৳{order.total.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {order.items.map((item: any) => (
+                            <div key={item.id} className="flex items-center gap-4">
+                              <img src={item.image} className="w-12 h-12 rounded-lg object-cover bg-slate-200 dark:bg-slate-700" />
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm dark:text-white">{item.name}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Qty: {item.quantity} × ৳{item.price.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -864,7 +1192,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12">
+      <footer className="bg-white dark:bg-black border-t border-slate-200 dark:border-slate-800 py-12">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="col-span-2">
             <div className="flex flex-col leading-none mb-4">
@@ -890,10 +1218,10 @@ export default function App() {
           <div>
             <h4 className="font-bold mb-4 dark:text-white">Support</h4>
             <ul className="space-y-2 text-slate-500 dark:text-slate-400 text-sm">
-              <li><a href="#" className="hover:text-slate-900 dark:hover:text-white">Shipping Policy</a></li>
-              <li><a href="#" className="hover:text-slate-900 dark:hover:text-white">Returns & Exchanges</a></li>
-              <li><a href="#" className="hover:text-slate-900 dark:hover:text-white">Contact Us</a></li>
-              <li><a href="#" className="hover:text-slate-900 dark:hover:text-white">FAQ</a></li>
+              <li><button onClick={() => setActivePage('shipping')} className="hover:text-slate-900 dark:hover:text-white">Shipping Policy</button></li>
+              <li><button onClick={() => setActivePage('support')} className="hover:text-slate-900 dark:hover:text-white">Returns & Exchanges</button></li>
+              <li><button onClick={() => setActivePage('contact')} className="hover:text-slate-900 dark:hover:text-white">Contact Us</button></li>
+              <li><button onClick={() => setActivePage('faq')} className="hover:text-slate-900 dark:hover:text-white">FAQ</button></li>
             </ul>
           </div>
         </div>
@@ -949,8 +1277,15 @@ export default function App() {
                   <form onSubmit={handleAdminLogin} className="w-full max-w-md text-center">
                     <h4 className="text-3xl font-black mb-8 dark:text-white">Restricted Access</h4>
                     <input 
+                      type="email" 
+                      placeholder="Admin Email" 
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 mb-4 outline-none focus:ring-2 focus:ring-[#b8860b] transition-all dark:text-white"
+                    />
+                    <input 
                       type="password" 
-                      placeholder="Enter Admin Password" 
+                      placeholder="Admin Password" 
                       value={adminPassword}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 mb-4 outline-none focus:ring-2 focus:ring-[#b8860b] transition-all dark:text-white"
@@ -964,7 +1299,50 @@ export default function App() {
                 <div className="flex-1 overflow-hidden flex">
                   {/* Sidebar */}
                   <div className="w-64 border-r border-slate-100 dark:border-slate-800 p-6 flex flex-col gap-2">
-                    <button className="w-full text-left px-4 py-3 rounded-xl bg-[#b8860b] text-white font-bold">Management</button>
+                    <button 
+                      onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowCategoryManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold ${!showAnalytics && !showOrdersManager && !showAdminsManager && !showAdminProfile && !showAdminSupport && !showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      Management
+                    </button>
+                    <button 
+                      onClick={() => { setShowAnalytics(false); setShowOrdersManager(true); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showOrdersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      <Package size={18} /> Orders
+                    </button>
+                    <button 
+                      onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(true); setShowSubscribersManager(false); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminSupport ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      <MessageSquare size={18} /> Support
+                    </button>
+                    <button 
+                      onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(true); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      <Mail size={18} /> Subscribers
+                    </button>
+                    <button 
+                      onClick={() => { setShowAnalytics(true); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAnalytics ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      <BarChart2 size={18} /> Analytics Terminal
+                    </button>
+                    {adminUser?.email === 'abdullah@malabaz.com' && (
+                      <button 
+                        onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(true); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
+                        className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminsManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      >
+                        <Shield size={18} /> Admins
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(true); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
+                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminProfile ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                    >
+                      <UserIcon size={18} /> Profile
+                    </button>
                     <button onClick={() => setIsAdminAuthenticated(false)} className="mt-auto w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-bold flex items-center gap-2">
                       <LogOut size={18} />
                       Logout
@@ -973,82 +1351,96 @@ export default function App() {
 
                   {/* Content */}
                   <div className="flex-1 overflow-y-auto p-8">
-                    <div className="flex justify-between items-center mb-8">
-                      <h4 className="text-3xl font-black dark:text-white">Content Management</h4>
-                      <div className="flex gap-3">
-                        <button 
-                          onClick={() => setShowCategoryManager(!showCategoryManager)}
-                          className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
-                            showCategoryManager 
-                              ? 'bg-[#b8860b] text-white shadow-lg' 
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          <Settings size={20} />
-                          {showCategoryManager ? 'Close Category Manager' : 'Customize Categories'}
-                        </button>
-                        <button 
-                          onClick={() => setEditingProduct({ name: '', description: '', price: 0, category: categories[0]?.name || '', image: '', stock: 10 })}
-                          className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform"
-                        >
-                          <PlusCircle size={20} />
-                          Add New Product
-                        </button>
-                      </div>
-                    </div>
+                    {showAnalytics ? (
+                      <AnalyticsDashboard />
+                    ) : showOrdersManager ? (
+                      <OrdersManager adminUser={adminUser} />
+                    ) : showAdminSupport ? (
+                      <AdminSupport adminUser={adminUser} />
+                    ) : showSubscribersManager ? (
+                      <SubscribersManager />
+                    ) : showAdminsManager && adminUser?.email === 'abdullah@malabaz.com' ? (
+                      <AdminsManager />
+                    ) : showAdminProfile ? (
+                      <AdminProfile adminUser={adminUser} setAdminUser={setAdminUser} />
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center mb-8">
+                          <h4 className="text-3xl font-black dark:text-white">Content Management</h4>
+                          <div className="flex gap-3">
+                            <button 
+                              onClick={() => setShowCategoryManager(!showCategoryManager)}
+                              className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
+                                showCategoryManager 
+                                  ? 'bg-[#b8860b] text-white shadow-lg' 
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              <Settings size={20} />
+                              {showCategoryManager ? 'Close Category Manager' : 'Customize Categories'}
+                            </button>
+                            <button 
+                              onClick={() => setEditingProduct({ name: '', description: '', price: 0, category: categories[0]?.name || '', image: '', stock: 10 })}
+                              className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+                            >
+                              <PlusCircle size={20} />
+                              Add New Product
+                            </button>
+                          </div>
+                        </div>
 
-                    <AnimatePresence>
-                      {showCategoryManager && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden mb-12"
-                        >
-                          <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
-                            <h5 className="text-xl font-black mb-6 dark:text-white">Manage Categories</h5>
-                            <div className="flex gap-4 mb-6">
-                              <input 
-                                type="text" 
-                                placeholder="New Category Name"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
-                              />
-                              <button 
-                                onClick={addCategory}
-                                className="bg-[#b8860b] text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors flex items-center gap-2"
-                              >
-                                <PlusCircle size={14} /> Add Category
-                              </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {categories.map(cat => (
-                                <div key={cat.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm dark:text-white group">
-                                  {cat.name}
-                                  <button onClick={() => deleteCategory(cat.id)} className="text-slate-300 hover:text-red-500 p-1 transition-colors">
-                                    <X size={14} />
+                        <AnimatePresence>
+                          {showCategoryManager && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden mb-12"
+                            >
+                              <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
+                                <h5 className="text-xl font-black mb-6 dark:text-white">Manage Categories</h5>
+                                <div className="flex gap-4 mb-6">
+                                  <input 
+                                    type="text" 
+                                    placeholder="New Category Name"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                                  />
+                                  <button 
+                                    onClick={addCategory}
+                                    className="bg-[#b8860b] text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors flex items-center gap-2"
+                                  >
+                                    <PlusCircle size={14} /> Add Category
                                   </button>
                                 </div>
-                              ))}
-                            </div>
-                            <p className="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                              Note: Default categories are Panjabi, Saree, Clothing, Shoes, Bags, Watches.
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                                <div className="flex flex-wrap gap-2">
+                                  {categories.map(cat => (
+                                    <div key={cat.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm dark:text-white group">
+                                      {cat.name}
+                                      <button onClick={() => deleteCategory(cat.id)} className="text-slate-300 hover:text-red-500 p-1 transition-colors">
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <p className="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                  Note: Default categories are Panjabi, Saree, Clothing, Shoes, Bags, Watches.
+                                </p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
-                    {/* Site Config Section */}
+                        {/* Site Config Section */}
                     <div className="mb-12 p-8 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800">
                       <div className="flex justify-between items-center mb-6">
-                        <h5 className="text-xl font-black dark:text-white">Site Visuals</h5>
+                        <h5 className="text-xl font-black dark:text-white">Site Visuals & Contact Info</h5>
                         <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
-                          Use direct image links only (.jpg, .png)
+                          Update site details
                         </span>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Hero Banner Image</label>
                           <div className="flex flex-col gap-2 mb-3">
@@ -1214,6 +1606,8 @@ export default function App() {
                         </tbody>
                       </table>
                     </div>
+                    </>
+                    )}
                   </div>
                 </div>
               )}

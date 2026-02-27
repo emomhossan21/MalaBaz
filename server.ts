@@ -43,6 +43,9 @@ db.exec(`
     shipping_address TEXT,
     city TEXT,
     zip_code TEXT,
+    payment_method TEXT,
+    transaction_id TEXT,
+    payment_phone TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
@@ -66,7 +69,70 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL,
+    profile_photo TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS support_tickets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    subject TEXT NOT NULL,
+    status TEXT DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS support_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER,
+    sender_type TEXT NOT NULL,
+    sender_id INTEGER,
+    message TEXT,
+    image_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(ticket_id) REFERENCES support_tickets(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS subscribers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
+
+try {
+  db.prepare("ALTER TABLE admins ADD COLUMN profile_photo TEXT").run();
+} catch (e) {
+  // Column might already exist
+}
+
+try {
+  db.prepare("ALTER TABLE orders ADD COLUMN payment_method TEXT").run();
+  db.prepare("ALTER TABLE orders ADD COLUMN transaction_id TEXT").run();
+  db.prepare("ALTER TABLE orders ADD COLUMN payment_phone TEXT").run();
+} catch (e) {
+  // Columns might already exist
+}
+
+try {
+  db.prepare("ALTER TABLE orders ADD COLUMN updated_by TEXT").run();
+} catch (e) {
+  // Column might already exist
+}
+
+// Seed admins if empty
+const adminCount = db.prepare("SELECT COUNT(*) as count FROM admins").get() as { count: number };
+if (adminCount.count === 0) {
+  const insertAdmin = db.prepare("INSERT INTO admins (email, password, name) VALUES (?, ?, ?)");
+  insertAdmin.run("abdullah@malabaz.com", "0504", "Emon Hossan Miazi");
+  insertAdmin.run("azim@malabaz.com", "azim@123", "Azim Uddin");
+}
 
 // Seed data if empty
 const configCount = db.prepare("SELECT COUNT(*) as count FROM site_config").get() as { count: number };
@@ -155,9 +221,9 @@ async function startServer() {
   });
 
   app.post("/api/orders", (req, res) => {
-    const { userId, items, total, shippingAddress, city, zipCode } = req.body;
+    const { userId, items, total, shippingAddress, city, zipCode, paymentMethod, transactionId, paymentPhone } = req.body;
     const transaction = db.transaction(() => {
-      const orderInfo = db.prepare("INSERT INTO orders (user_id, total, shipping_address, city, zip_code) VALUES (?, ?, ?, ?, ?)").run(userId, total, shippingAddress, city, zipCode);
+      const orderInfo = db.prepare("INSERT INTO orders (user_id, total, shipping_address, city, zip_code, payment_method, transaction_id, payment_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(userId, total, shippingAddress, city, zipCode, paymentMethod, transactionId, paymentPhone);
       const orderId = orderInfo.lastInsertRowid;
       const insertItem = db.prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
       for (const item of items) {
@@ -167,6 +233,29 @@ async function startServer() {
     });
     const orderId = transaction();
     res.json({ success: true, orderId });
+  });
+
+  app.get("/api/users/:id/orders", (req, res) => {
+    const { id } = req.params;
+    try {
+      const orders = db.prepare(`
+        SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC
+      `).all(id);
+      
+      const ordersWithItems = orders.map((order: any) => {
+        const items = db.prepare(`
+          SELECT oi.*, p.name, p.image 
+          FROM order_items oi
+          JOIN products p ON oi.product_id = p.id
+          WHERE oi.order_id = ?
+        `).all(order.id);
+        return { ...order, items };
+      });
+      
+      res.json(ordersWithItems);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/api/admin/upload", (req, res) => {
@@ -194,12 +283,113 @@ async function startServer() {
 
   // Admin Routes
   app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    console.log("Admin login attempt");
-    if (password === "admin123") {
-      res.json({ success: true, token: "admin-token-123" });
+    const { email, password } = req.body;
+    console.log("Admin login attempt:", email);
+    
+    const admin = db.prepare("SELECT * FROM admins WHERE email = ? AND password = ?").get(email, password) as any;
+    
+    if (admin) {
+      res.json({ success: true, token: "admin-token-123", admin: { id: admin.id, name: admin.name, email: admin.email, profile_photo: admin.profile_photo } });
     } else {
       res.status(401).json({ error: "Unauthorized" });
+    }
+  });
+
+  app.get("/api/admin/profile/:id/stats", (req, res) => {
+    const { id } = req.params;
+    try {
+      const admin = db.prepare("SELECT name FROM admins WHERE id = ?").get(id) as any;
+      if (!admin) return res.status(404).json({error: "Admin not found"});
+      
+      const stats = db.prepare(`
+        SELECT status, COUNT(*) as count 
+        FROM orders 
+        WHERE updated_by = ? 
+        GROUP BY status
+      `).all(admin.name);
+      
+      res.json(stats);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/profile/:id/history", (req, res) => {
+    const { id } = req.params;
+    try {
+      const admin = db.prepare("SELECT email, name FROM admins WHERE id = ?").get(id) as any;
+      if (!admin) return res.status(404).json({error: "Admin not found"});
+      
+      let history;
+      if (admin.email === 'abdullah@malabaz.com') {
+        history = db.prepare(`
+          SELECT o.*, u.name as user_name 
+          FROM orders o 
+          LEFT JOIN users u ON o.user_id = u.id 
+          WHERE o.status != 'pending'
+          ORDER BY o.created_at DESC
+        `).all();
+      } else {
+        history = db.prepare(`
+          SELECT o.*, u.name as user_name 
+          FROM orders o 
+          LEFT JOIN users u ON o.user_id = u.id 
+          WHERE o.status != 'pending' AND o.updated_by = ?
+          ORDER BY o.created_at DESC
+        `).all(admin.name);
+      }
+      res.json(history);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/admin/profile/:id", (req, res) => {
+    const { id } = req.params;
+    const { password, profile_photo } = req.body;
+    
+    try {
+      if (password && profile_photo) {
+        db.prepare("UPDATE admins SET password = ?, profile_photo = ? WHERE id = ?").run(password, profile_photo, id);
+      } else if (password) {
+        db.prepare("UPDATE admins SET password = ? WHERE id = ?").run(password, id);
+      } else if (profile_photo) {
+        db.prepare("UPDATE admins SET profile_photo = ? WHERE id = ?").run(profile_photo, id);
+      }
+      
+      const updatedAdmin = db.prepare("SELECT id, email, name, profile_photo FROM admins WHERE id = ?").get(id) as any;
+      res.json({ success: true, admin: updatedAdmin });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/admins", (req, res) => {
+    try {
+      const admins = db.prepare("SELECT id, email, name FROM admins").all();
+      res.json(admins);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/admins", (req, res) => {
+    const { email, password, name } = req.body;
+    try {
+      const info = db.prepare("INSERT INTO admins (email, password, name) VALUES (?, ?, ?)").run(email, password, name);
+      res.json({ id: Number(info.lastInsertRowid), email, name });
+    } catch (err: any) {
+      res.status(500).json({ error: "Email already exists or invalid data" });
+    }
+  });
+
+  app.delete("/api/admin/admins/:id", (req, res) => {
+    const { id } = req.params;
+    try {
+      db.prepare("DELETE FROM admins WHERE id = ?").run(Number(id));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -236,7 +426,7 @@ async function startServer() {
     const { name, description, price, category, image, stock } = req.body;
     console.log("Updating product:", id);
     try {
-      db.prepare("UPDATE products SET name = ?, description = ?, price = ?, category = ?, image = ?, stock = ? WHERE id = ?").run(name, description, price, category, image, stock, id);
+      db.prepare("UPDATE products SET name = ?, description = ?, price = ?, category = ?, image = ?, stock = ? WHERE id = ?").run(name, description, price, category, image, stock, Number(id));
       res.json({ success: true });
     } catch (err: any) {
       console.error("Error updating product:", err);
@@ -248,7 +438,12 @@ async function startServer() {
     const { id } = req.params;
     console.log("Deleting product:", id);
     try {
-      const info = db.prepare("DELETE FROM products WHERE id = ?").run(id);
+      const productId = Number(id);
+      
+      // Delete related order items first to avoid orphaned records
+      db.prepare("DELETE FROM order_items WHERE product_id = ?").run(productId);
+      
+      const info = db.prepare("DELETE FROM products WHERE id = ?").run(productId);
       console.log("Delete result:", info);
       res.json({ success: true, changes: info.changes });
     } catch (err: any) {
@@ -271,7 +466,137 @@ async function startServer() {
   app.delete("/api/admin/categories/:id", (req, res) => {
     const { id } = req.params;
     try {
-      db.prepare("DELETE FROM categories WHERE id = ?").run(id);
+      db.prepare("DELETE FROM categories WHERE id = ?").run(Number(id));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/orders", (req, res) => {
+    try {
+      const orders = db.prepare(`
+        SELECT o.*, u.name as user_name 
+        FROM orders o 
+        LEFT JOIN users u ON o.user_id = u.id 
+        ORDER BY o.created_at DESC
+      `).all();
+      res.json(orders);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/orders/:id/items", (req, res) => {
+    const { id } = req.params;
+    try {
+      const items = db.prepare(`
+        SELECT oi.*, p.name as product_name 
+        FROM order_items oi 
+        LEFT JOIN products p ON oi.product_id = p.id 
+        WHERE oi.order_id = ?
+      `).all(id);
+      res.json(items);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/admin/orders/:id/status", (req, res) => {
+    const { id } = req.params;
+    const { status, adminName } = req.body;
+    try {
+      db.prepare("UPDATE orders SET status = ?, updated_by = ? WHERE id = ?").run(status, adminName, id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Support Routes
+  app.post("/api/subscribe", (req, res) => {
+    const { email } = req.body;
+    try {
+      db.prepare("INSERT INTO subscribers (email) VALUES (?)").run(email);
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err.message.includes('UNIQUE constraint failed')) {
+        res.status(400).json({ error: 'Email already subscribed' });
+      } else {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  });
+
+  app.get("/api/admin/subscribers", (req, res) => {
+    try {
+      const subscribers = db.prepare("SELECT * FROM subscribers ORDER BY created_at DESC").all();
+      res.json(subscribers);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/support/tickets/:userId", (req, res) => {
+    try {
+      const tickets = db.prepare("SELECT * FROM support_tickets WHERE user_id = ? ORDER BY updated_at DESC").all(req.params.userId);
+      res.json(tickets);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/tickets", (req, res) => {
+    const { user_id, subject, message, image_url } = req.body;
+    try {
+      const info = db.prepare("INSERT INTO support_tickets (user_id, subject) VALUES (?, ?)").run(user_id, subject);
+      const ticketId = info.lastInsertRowid;
+      db.prepare("INSERT INTO support_messages (ticket_id, sender_type, sender_id, message, image_url) VALUES (?, 'user', ?, ?, ?)").run(ticketId, user_id, message, image_url);
+      res.json({ success: true, ticket_id: ticketId });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/support/tickets/:ticketId/messages", (req, res) => {
+    try {
+      const messages = db.prepare("SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC").all(req.params.ticketId);
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/tickets/:ticketId/messages", (req, res) => {
+    const { sender_type, sender_id, message, image_url } = req.body;
+    const ticketId = req.params.ticketId;
+    try {
+      db.prepare("INSERT INTO support_messages (ticket_id, sender_type, sender_id, message, image_url) VALUES (?, ?, ?, ?, ?)").run(ticketId, sender_type, sender_id, message, image_url);
+      db.prepare("UPDATE support_tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(ticketId);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admin/support/tickets", (req, res) => {
+    try {
+      const tickets = db.prepare(`
+        SELECT t.*, u.name as user_name, u.email as user_email
+        FROM support_tickets t
+        LEFT JOIN users u ON t.user_id = u.id
+        ORDER BY t.updated_at DESC
+      `).all();
+      res.json(tickets);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/admin/support/tickets/:id/status", (req, res) => {
+    const { status } = req.body;
+    try {
+      db.prepare("UPDATE support_tickets SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(status, req.params.id);
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
