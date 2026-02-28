@@ -194,20 +194,25 @@ export default function App() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/signup';
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setUser(data);
-      setIsAuthOpen(false);
-      setEmail('');
-      setPassword('');
-      setName('');
-    } else {
-      alert(data.error);
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data);
+        setIsAuthOpen(false);
+        setEmail('');
+        setPassword('');
+        setName('');
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      console.error("Auth error:", err);
+      alert('Network error during authentication');
     }
   };
 
