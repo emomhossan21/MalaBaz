@@ -109,15 +109,46 @@ export default function App() {
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
-      .then(setProducts);
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else {
+          console.error("Expected array of products, got:", data);
+          setProducts([]);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching products:", err);
+        setProducts([]);
+      });
     
     fetch('/api/config')
       .then(res => res.json())
-      .then(setConfig);
+      .then(data => {
+        if (data && !data.error) {
+          setConfig(data);
+        } else {
+          console.error("Error fetching config:", data);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching config:", err);
+      });
 
     fetch('/api/categories')
       .then(res => res.json())
-      .then(setCategories);
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          console.error("Expected array of categories, got:", data);
+          setCategories([]);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching categories:", err);
+        setCategories([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -382,12 +413,12 @@ export default function App() {
     setCheckoutStep('payment');
   };
 
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = Array.isArray(products) ? products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
     return matchesSearch && matchesCategory;
-  });
+  }) : [];
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -546,7 +577,7 @@ export default function App() {
             <div className="p-2 text-slate-400">
               <Search size={20} />
             </div>
-            {['All', ...categories.map(c => c.name)].map(cat => (
+            {['All', ...(Array.isArray(categories) ? categories.map(c => c.name) : [])].map(cat => (
               <button 
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -831,8 +862,13 @@ export default function App() {
                       {paymentDetails.method !== 'cod' && (
                         <div className="mt-6 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                            Please send ৳{cartTotal.toLocaleString()} to our {paymentDetails.method.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white">01XXXXXXXXX</strong>
+                            Please send ৳{cartTotal.toLocaleString()} to our {paymentDetails.method.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white text-lg block mt-1">{config[`${paymentDetails.method}_number`] || 'Number not set'}</strong>
                           </p>
+                          {config.payment_instructions && (
+                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-lg text-sm mb-4 border border-amber-200 dark:border-amber-800/30">
+                              {config.payment_instructions}
+                            </div>
+                          )}
                           <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">{paymentDetails.method.toUpperCase()} Number</label>
                             <input required type="tel" value={paymentDetails.phone} onChange={e => setPaymentDetails({...paymentDetails, phone: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="01XXXXXXXXX" />
@@ -1415,7 +1451,7 @@ export default function App() {
                                   </button>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  {categories.map(cat => (
+                                  {Array.isArray(categories) && categories.map(cat => (
                                     <div key={cat.id} className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-sm dark:text-white group">
                                       {cat.name}
                                       <button onClick={() => deleteCategory(cat.id)} className="text-slate-300 hover:text-red-500 p-1 transition-colors">
@@ -1565,6 +1601,90 @@ export default function App() {
                           )}
                         </div>
                       </div>
+
+                      <div className="flex justify-between items-center mb-6 mt-12 border-t border-slate-200 dark:border-slate-700 pt-8">
+                        <h5 className="text-xl font-black dark:text-white">Payment Configuration</h5>
+                        <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
+                          Checkout Settings
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">bKash Number</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 01700000000"
+                              value={tempConfig.bkash_number || ''}
+                              onChange={(e) => setTempConfig({ ...tempConfig, bkash_number: e.target.value })}
+                              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                            />
+                            <button 
+                              disabled={isSavingConfig === 'bkash_number'}
+                              onClick={() => updateConfig('bkash_number', tempConfig.bkash_number)}
+                              className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                            >
+                              {isSavingConfig === 'bkash_number' ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Nagad Number</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 01700000000"
+                              value={tempConfig.nagad_number || ''}
+                              onChange={(e) => setTempConfig({ ...tempConfig, nagad_number: e.target.value })}
+                              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                            />
+                            <button 
+                              disabled={isSavingConfig === 'nagad_number'}
+                              onClick={() => updateConfig('nagad_number', tempConfig.nagad_number)}
+                              className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                            >
+                              {isSavingConfig === 'nagad_number' ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Rocket Number</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="e.g. 01700000000"
+                              value={tempConfig.rocket_number || ''}
+                              onChange={(e) => setTempConfig({ ...tempConfig, rocket_number: e.target.value })}
+                              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                            />
+                            <button 
+                              disabled={isSavingConfig === 'rocket_number'}
+                              onClick={() => updateConfig('rocket_number', tempConfig.rocket_number)}
+                              className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                            >
+                              {isSavingConfig === 'rocket_number' ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="md:col-span-3">
+                          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Payment Instructions (Shown at checkout)</label>
+                          <div className="flex gap-2">
+                            <textarea 
+                              placeholder="Enter instructions for customers..."
+                              value={tempConfig.payment_instructions || ''}
+                              onChange={(e) => setTempConfig({ ...tempConfig, payment_instructions: e.target.value })}
+                              className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white min-h-[80px]"
+                            />
+                            <button 
+                              disabled={isSavingConfig === 'payment_instructions'}
+                              onClick={() => updateConfig('payment_instructions', tempConfig.payment_instructions)}
+                              className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50 h-fit"
+                            >
+                              {isSavingConfig === 'payment_instructions' ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Products Table */}
@@ -1580,7 +1700,7 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                          {products.map(p => (
+                          {Array.isArray(products) && products.map(p => (
                             <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-4">
@@ -1663,7 +1783,7 @@ export default function App() {
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                       className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-[#b8860b] dark:text-white"
                     >
-                      {categories.map(cat => (
+                      {Array.isArray(categories) && categories.map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
                       ))}
                     </select>

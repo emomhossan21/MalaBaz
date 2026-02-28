@@ -36,7 +36,6 @@ export default function AdminsManager() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this admin?')) return;
     const res = await fetch(`/api/admin/admins/${id}`, { method: 'DELETE' });
     if (res.ok) {
       fetchAdmins();
