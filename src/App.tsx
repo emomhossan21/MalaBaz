@@ -34,6 +34,8 @@ export default function App() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminUser, setAdminUser] = useState<{id: number, name: string, email: string, profile_photo?: string} | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
 
   const [subscribeEmail, setSubscribeEmail] = useState('');
   const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -193,6 +195,7 @@ export default function App() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/signup';
     try {
       const res = await fetch(endpoint, {
@@ -208,16 +211,17 @@ export default function App() {
         setPassword('');
         setName('');
       } else {
-        alert(data.error || 'Authentication failed');
+        setAuthError(data.error || 'Incorrect email or password. Please try again.');
       }
     } catch (err) {
       console.error("Auth error:", err);
-      alert('Network error during authentication');
+      setAuthError('Network error during authentication. Please check your connection.');
     }
   };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAdminAuthError(null);
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -230,7 +234,7 @@ export default function App() {
       setAdminEmail('');
       setAdminPassword('');
     } else {
-      alert('Invalid admin credentials');
+      setAdminAuthError('Incorrect admin email or password. Please try again.');
     }
   };
 
@@ -1002,9 +1006,18 @@ export default function App() {
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">
                   <h3 className="text-2xl font-bold dark:text-white">{authMode === 'login' ? 'Welcome Back' : 'Create Account'}</h3>
-                  <button onClick={() => setIsAuthOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full dark:text-white"><X size={20} /></button>
+                  <button onClick={() => { setIsAuthOpen(false); setAuthError(null); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full dark:text-white"><X size={20} /></button>
                 </div>
                 
+                {authError && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800/30 text-sm flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <p>{authError}</p>
+                  </div>
+                )}
+
                 <form onSubmit={handleAuth} className="space-y-4">
                   {authMode === 'signup' && (
                     <div>
@@ -1051,7 +1064,7 @@ export default function App() {
                     {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
                   </span>
                   <button 
-                    onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                    onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(null); }}
                     className="font-bold text-slate-900 dark:text-white hover:underline"
                   >
                     {authMode === 'login' ? 'Sign Up' : 'Log In'}
@@ -1317,6 +1330,16 @@ export default function App() {
                 <div className="flex-1 flex items-center justify-center p-8">
                   <form onSubmit={handleAdminLogin} className="w-full max-w-md text-center">
                     <h4 className="text-3xl font-black mb-8 dark:text-white">Restricted Access</h4>
+                    
+                    {adminAuthError && (
+                      <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800/30 text-sm flex items-start gap-3 text-left">
+                        <div className="shrink-0 mt-0.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <p>{adminAuthError}</p>
+                      </div>
+                    )}
+
                     <input 
                       type="email" 
                       placeholder="Admin Email" 
