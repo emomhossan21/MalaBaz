@@ -26,8 +26,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'shipping' | 'payment' | 'success'>('cart');
-  const [shippingDetails, setShippingDetails] = useState({ address: '', city: '', zipCode: '' });
-  const [paymentDetails, setPaymentDetails] = useState({ method: 'cod', transactionId: '', phone: '' });
+  const [shippingDetails, setShippingDetails] = useState({ address: '', city: 'Dhaka', zipCode: '' });
+  const [paymentDetails, setPaymentDetails] = useState({ method: 'cod', transactionId: '', phone: '', codPaymentMethod: 'bkash' });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -394,17 +394,19 @@ export default function App() {
     if (!user) return;
     
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryCharge = shippingDetails.city === 'Dhaka' ? 60 : 120;
+    const finalTotal = total + deliveryCharge;
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         userId: user.id, 
         items: cart, 
-        total,
+        total: finalTotal,
         shippingAddress: shippingDetails.address,
         city: shippingDetails.city,
         zipCode: shippingDetails.zipCode,
-        paymentMethod: paymentDetails.method,
+        paymentMethod: paymentDetails.method === 'cod' ? `cod_${paymentDetails.codPaymentMethod}` : paymentDetails.method,
         transactionId: paymentDetails.transactionId,
         paymentPhone: paymentDetails.phone
       })
@@ -412,8 +414,8 @@ export default function App() {
     if (res.ok) {
       setCheckoutStep('success');
       setCart([]);
-      setShippingDetails({ address: '', city: '', zipCode: '' });
-      setPaymentDetails({ method: 'cod', transactionId: '', phone: '' });
+      setShippingDetails({ address: '', city: 'Dhaka', zipCode: '' });
+      setPaymentDetails({ method: 'cod', transactionId: '', phone: '', codPaymentMethod: 'bkash' });
     }
   };
 
@@ -430,6 +432,8 @@ export default function App() {
   }) : [];
 
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const deliveryCharge = shippingDetails.city === 'Dhaka' ? 60 : 120;
+  const finalTotal = cartTotal + deliveryCharge;
 
   const scrollToProducts = () => {
     const element = document.getElementById('products-grid');
@@ -560,7 +564,7 @@ export default function App() {
             transition={{ delay: 0.3, duration: 1, ease: [0.16, 1, 0.3, 1] }}
             className="text-white/90 text-lg md:text-xl mb-12 font-medium uppercase tracking-[0.6em] drop-shadow-lg"
           >
-            The Art of Tradition
+            Premium Global Fashion
           </motion.p>
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -693,15 +697,15 @@ export default function App() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
               >
-                <span className="text-[#b8860b] font-bold uppercase tracking-widest text-sm mb-4 block">Our Heritage</span>
-                <h3 className="text-4xl md:text-6xl font-black tracking-tight mb-8 dark:text-white">Crafted with <br /> Bangladeshi Tradition.</h3>
+                <span className="text-[#b8860b] font-bold uppercase tracking-widest text-sm mb-4 block">Global Fashion</span>
+                <h3 className="text-4xl md:text-6xl font-black tracking-tight mb-8 dark:text-white">Curated with <br /> Premium Quality.</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 leading-relaxed">
-                  MalaBez is proud to showcase the rich textile heritage of Bangladesh. From the intricate weaves of Jamdani to the royal touch of Rajshahi Silk, we bring you authentic craftsmanship that elevates your wardrobe with timeless elegance.
+                  MalaBez is your ultimate destination for premium global fashion. From authentic imported Chinese apparel to high-end modern clothing, we bring you top-tier international trends and premium quality products that elevate your everyday wardrobe with contemporary elegance.
                 </p>
                 <div className="grid grid-cols-2 gap-8 mb-12">
                   <div>
                     <span className="text-3xl font-black text-slate-900 dark:text-white block mb-1">100%</span>
-                    <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Sustainable Materials</span>
+                    <span className="text-slate-400 text-sm font-bold uppercase tracking-wider">Original Products</span>
                   </div>
                   <div>
                     <span className="text-3xl font-black text-slate-900 dark:text-white block mb-1">24/7</span>
@@ -828,14 +832,24 @@ export default function App() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">City</label>
-                          <input 
+                          <select 
                             required
-                            type="text" 
                             value={shippingDetails.city}
                             onChange={e => setShippingDetails({...shippingDetails, city: e.target.value})}
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white"
-                            placeholder="Dhaka"
-                          />
+                          >
+                            <option value="Dhaka">Dhaka (৳60)</option>
+                            <option value="Chattogram">Chattogram (৳120)</option>
+                            <option value="Gazipur">Gazipur (৳120)</option>
+                            <option value="Narayanganj">Narayanganj (৳120)</option>
+                            <option value="Khulna">Khulna (৳120)</option>
+                            <option value="Rajshahi">Rajshahi (৳120)</option>
+                            <option value="Sylhet">Sylhet (৳120)</option>
+                            <option value="Barishal">Barishal (৳120)</option>
+                            <option value="Rangpur">Rangpur (৳120)</option>
+                            <option value="Mymensingh">Mymensingh (৳120)</option>
+                            <option value="Cumilla">Cumilla (৳120)</option>
+                          </select>
                         </div>
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Zip Code</label>
@@ -868,10 +882,10 @@ export default function App() {
                         ))}
                       </div>
 
-                      {paymentDetails.method !== 'cod' && (
+                      {paymentDetails.method !== 'cod' ? (
                         <div className="mt-6 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                            Please send ৳{cartTotal.toLocaleString()} to our {paymentDetails.method.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white text-lg block mt-1">{config[`${paymentDetails.method}_number`] || 'Number not set'}</strong>
+                            Please send ৳{finalTotal.toLocaleString()} to our {paymentDetails.method.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white text-lg block mt-1">{config[`${paymentDetails.method}_number`] || 'Number not set'}</strong>
                           </p>
                           {config.payment_instructions && (
                             <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 rounded-lg text-sm mb-4 border border-amber-200 dark:border-amber-800/30">
@@ -880,6 +894,37 @@ export default function App() {
                           )}
                           <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">{paymentDetails.method.toUpperCase()} Number</label>
+                            <input required type="tel" value={paymentDetails.phone} onChange={e => setPaymentDetails({...paymentDetails, phone: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="01XXXXXXXXX" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">Transaction ID</label>
+                            <input required type="text" value={paymentDetails.transactionId} onChange={e => setPaymentDetails({...paymentDetails, transactionId: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="TrxID" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-6 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <h5 className="font-bold dark:text-white mb-2">Delivery Charge Payment</h5>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            To confirm your Cash on Delivery order, please pay the delivery charge of <strong>৳{deliveryCharge}</strong> in advance.
+                          </p>
+                          
+                          <div className="flex gap-4 mb-4">
+                            {['bkash', 'nagad'].map(method => (
+                              <label key={`cod-${method}`} className={`flex-1 p-3 border rounded-xl cursor-pointer transition-colors ${paymentDetails.codPaymentMethod === method ? 'border-slate-900 dark:border-white bg-white dark:bg-slate-900' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                                <div className="flex items-center gap-2">
+                                  <input type="radio" name="codPaymentMethod" value={method} checked={paymentDetails.codPaymentMethod === method} onChange={() => setPaymentDetails({...paymentDetails, codPaymentMethod: method})} className="w-4 h-4 text-slate-900" />
+                                  <span className="font-bold uppercase tracking-wider text-sm dark:text-white">{method}</span>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                            Please send the delivery charge to our {paymentDetails.codPaymentMethod.toUpperCase()} personal number: <strong className="text-slate-900 dark:text-white text-lg block mt-1">{config[`${paymentDetails.codPaymentMethod}_number`] || 'Number not set'}</strong>
+                          </p>
+
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 ml-1">{paymentDetails.codPaymentMethod.toUpperCase()} Number</label>
                             <input required type="tel" value={paymentDetails.phone} onChange={e => setPaymentDetails({...paymentDetails, phone: e.target.value})} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-slate-900 dark:focus:border-white transition-colors dark:text-white" placeholder="01XXXXXXXXX" />
                           </div>
                           <div>
@@ -922,14 +967,14 @@ export default function App() {
               </div>
 
               {cart.length > 0 && checkoutStep === 'cart' && (
-                <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                  <div className="flex justify-between mb-4">
+                <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-3">
+                  <div className="flex justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
-                    <span className="font-bold text-lg dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                    <span className="font-bold dark:text-white">৳{cartTotal.toLocaleString()}</span>
                   </div>
                   <button 
                     onClick={handleCheckout}
-                    className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+                    className="w-full mt-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
                   >
                     Proceed to Checkout
                   </button>
@@ -937,10 +982,18 @@ export default function App() {
               )}
               {checkoutStep === 'shipping' && (
                 <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                  <div className="max-w-3xl mx-auto w-full">
-                    <div className="flex justify-between mb-4">
-                      <span className="text-slate-500 dark:text-slate-400">Total to pay</span>
-                      <span className="font-bold text-lg dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                  <div className="max-w-3xl mx-auto w-full space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
+                      <span className="font-bold dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Delivery Charge</span>
+                      <span className="font-bold dark:text-white">৳{deliveryCharge.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-700 mb-4">
+                      <span className="text-slate-900 dark:text-white font-bold">Total to pay</span>
+                      <span className="font-bold text-lg dark:text-white">৳{finalTotal.toLocaleString()}</span>
                     </div>
                     <button 
                       type="submit"
@@ -960,10 +1013,18 @@ export default function App() {
               )}
               {checkoutStep === 'payment' && (
                 <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                  <div className="max-w-3xl mx-auto w-full">
-                    <div className="flex justify-between mb-4">
-                      <span className="text-slate-500 dark:text-slate-400">Total to pay</span>
-                      <span className="font-bold text-lg dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                  <div className="max-w-3xl mx-auto w-full space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Subtotal</span>
+                      <span className="font-bold dark:text-white">৳{cartTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Delivery Charge</span>
+                      <span className="font-bold dark:text-white">৳{deliveryCharge.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-slate-700 mb-4">
+                      <span className="text-slate-900 dark:text-white font-bold">Total to pay</span>
+                      <span className="font-bold text-lg dark:text-white">৳{finalTotal.toLocaleString()}</span>
                     </div>
                     <button 
                       type="submit"
@@ -1118,7 +1179,7 @@ export default function App() {
                             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{new Date(order.created_at).toLocaleDateString()}</p>
                             {order.payment_method && (
                               <div className="text-xs mt-2 text-slate-500 dark:text-slate-400">
-                                Payment: <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{order.payment_method}</span>
+                                Payment: <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{order.payment_method.replace('_', ' ')}</span>
                                 {order.payment_method !== 'cod' && order.transaction_id && ` (TrxID: ${order.transaction_id})`}
                               </div>
                             )}
@@ -1257,7 +1318,7 @@ export default function App() {
               <span className="text-[8px] font-bold tracking-[0.3em] text-[#1a2a44]/60 dark:text-slate-400 ml-0.5 mt-0.5">CLOTHING</span>
             </div>
             <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-              Premium traditional and modern wear from the heart of Bangladesh. Elevate your wardrobe with MalaBez.
+              Premium imported and modern wear from around the globe. Elevate your wardrobe with MalaBez.
             </p>
           </div>
           <div>

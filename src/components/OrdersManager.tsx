@@ -47,7 +47,7 @@ export default function OrdersManager({ adminUser }: { adminUser: { id: number, 
 
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'cod') return order.payment_method === 'cod';
+    if (activeTab === 'cod') return order.payment_method?.startsWith('cod');
     if (activeTab === 'bkash') return order.payment_method === 'bkash';
     if (activeTab === 'nagad') return order.payment_method === 'nagad';
     if (activeTab === 'rocket') return order.payment_method === 'rocket';
@@ -106,7 +106,7 @@ export default function OrdersManager({ adminUser }: { adminUser: { id: number, 
                     <div className="text-xs text-slate-500">{order.shipping_address}, {order.city} - {order.zip_code}</div>
                     {order.payment_method && (
                       <div className="text-xs mt-1">
-                        <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{order.payment_method}</span>
+                        <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{order.payment_method.replace('_', ' ')}</span>
                         {order.payment_method !== 'cod' && (
                           <div className="text-slate-500 mt-0.5">
                             {order.payment_phone && <span>Phone: {order.payment_phone}</span>}
