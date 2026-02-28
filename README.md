@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-Premium Quality product
+View your app in AI Studio: https://ai.studio/apps/3ede07c8-9596-4465-9896-5668686d76d3
 
 ## Run Locally
 
