@@ -51,7 +51,7 @@ app.post("/api/orders", async (req, res) => {
 
   if (orderError) return res.status(500).json({ error: orderError.message });
 
-  const orderItems = items.map((item: any) => ({
+  const orderItems = items.map((item) => ({
     order_id: order.id,
     product_id: item.id,
     quantity: item.quantity,
@@ -99,7 +99,7 @@ app.post("/api/admin/upload", (req, res) => {
     
     const publicUrl = isVercel ? `/api/image/${safeFileName}` : `/uploads/${safeFileName}`;
     res.json({ url: publicUrl });
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: "Failed to save image" });
   }
 });
@@ -134,7 +134,7 @@ app.get("/api/admin/profile/:id/stats", async (req, res) => {
   if (!admin) return res.status(404).json({error: "Admin not found"});
   
   const { data: orders } = await supabase.from('orders').select('status').eq('updated_by', admin.name);
-  const counts: Record<string, number> = {};
+  const counts = {};
   orders?.forEach(o => {
     counts[o.status] = (counts[o.status] || 0) + 1;
   });
@@ -162,7 +162,7 @@ app.put("/api/admin/profile/:id", async (req, res) => {
   const { id } = req.params;
   const { password, profile_photo } = req.body;
   
-  const updates: any = {};
+  const updates = {};
   if (password) updates.password = password;
   if (profile_photo) updates.profile_photo = profile_photo;
   
@@ -194,7 +194,7 @@ app.delete("/api/admin/admins/:id", async (req, res) => {
 app.get("/api/config", async (req, res) => {
   const { data, error } = await supabase.from('site_config').select('*');
   if (error) return res.status(500).json({ error: error.message });
-  const configMap = data.reduce((acc: any, curr: any) => {
+  const configMap = data.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {});
@@ -247,14 +247,14 @@ app.delete("/api/admin/categories/:id", async (req, res) => {
 app.get("/api/admin/orders", async (req, res) => {
   const { data, error } = await supabase.from('orders').select('*, users(name)').order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data.map((o: any) => ({ ...o, user_name: o.users?.name })));
+  res.json(data.map((o) => ({ ...o, user_name: o.users?.name })));
 });
 
 app.get("/api/admin/orders/:id/items", async (req, res) => {
   const { id } = req.params;
   const { data, error } = await supabase.from('order_items').select('*, products(name)').eq('order_id', id);
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data.map((i: any) => ({ ...i, product_name: i.products?.name })));
+  res.json(data.map((i) => ({ ...i, product_name: i.products?.name })));
 });
 
 app.put("/api/admin/orders/:id/status", async (req, res) => {
@@ -322,7 +322,7 @@ app.post("/api/support/tickets/:ticketId/messages", async (req, res) => {
 app.get("/api/admin/support/tickets", async (req, res) => {
   const { data, error } = await supabase.from('support_tickets').select('*, users(name, email)').order('updated_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data.map((t: any) => ({ ...t, user_name: t.users?.name, user_email: t.users?.email })));
+  res.json(data.map((t) => ({ ...t, user_name: t.users?.name, user_email: t.users?.email })));
 });
 
 app.put("/api/admin/support/tickets/:id/status", async (req, res) => {
@@ -344,8 +344,8 @@ app.get("/api/admin/analytics", async (req, res) => {
     const { data: recentOrders } = await supabase.from('orders').select('*, users(name)').order('created_at', { ascending: false }).limit(5);
     
     const { data: orderItems } = await supabase.from('order_items').select('*, products(category)');
-    const salesByCategory: Record<string, number> = {};
-    orderItems?.forEach((item: any) => {
+    const salesByCategory = {};
+    orderItems?.forEach((item) => {
        const cat = item.products?.category || 'Unknown';
        salesByCategory[cat] = (salesByCategory[cat] || 0) + (item.quantity * item.price);
     });
@@ -355,7 +355,7 @@ app.get("/api/admin/analytics", async (req, res) => {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const recentValidOrders = orders?.filter(o => new Date(o.created_at) > sevenDaysAgo) || [];
-    const salesOverTimeMap: Record<string, number> = {};
+    const salesOverTimeMap = {};
     recentValidOrders.forEach(o => {
        const date = new Date(o.created_at).toISOString().split('T')[0];
        salesOverTimeMap[date] = (salesOverTimeMap[date] || 0) + o.total;
@@ -369,11 +369,11 @@ app.get("/api/admin/analytics", async (req, res) => {
         products: totalProducts || 0,
         users: totalUsers || 0
       },
-      recentOrders: recentOrders?.map((o: any) => ({ ...o, user_name: o.users?.name })) || [],
+      recentOrders: recentOrders?.map((o) => ({ ...o, user_name: o.users?.name })) || [],
       salesByCategory: salesByCategoryArray,
       salesOverTime
     });
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
