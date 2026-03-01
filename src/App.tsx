@@ -130,6 +130,7 @@ export default function App() {
       .then(data => {
         if (data && !data.error) {
           setConfig(data);
+          setTempConfig(data);
         } else {
           console.error("Error fetching config:", data);
         }
