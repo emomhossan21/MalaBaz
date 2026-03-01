@@ -1454,7 +1454,7 @@ export default function App() {
                     >
                       <BarChart2 size={18} /> Analytics
                     </button>
-                    {adminUser?.email === 'abdullah@malabaz.com' && (
+                    {adminUser?.email === 'abdullah@malabez.com' && (
                       <button 
                         onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(true); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
                         className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminsManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
@@ -1484,7 +1484,7 @@ export default function App() {
                       <AdminSupport adminUser={adminUser} />
                     ) : showSubscribersManager ? (
                       <SubscribersManager />
-                    ) : showAdminsManager && adminUser?.email === 'abdullah@malabaz.com' ? (
+                    ) : showAdminsManager && adminUser?.email === 'abdullah@malabez.com' ? (
                       <AdminsManager />
                     ) : showAdminProfile ? (
                       <AdminProfile adminUser={adminUser} setAdminUser={setAdminUser} />

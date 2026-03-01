@@ -9,7 +9,7 @@ export default function ShippingPolicy() {
         <section>
           <h2 className="text-2xl font-bold mb-4 dark:text-white">1. Delivery Coverage</h2>
           <p>
-            MALABAZ currently delivers to all 64 districts within Bangladesh. We partner with reliable courier services (e.g., Pathao, Steadfast, RedX) to ensure your products reach you safely and on time.
+            MALABEZ currently delivers to all 64 districts within Bangladesh. We partner with reliable courier services (e.g., Pathao, Steadfast, RedX) to ensure your products reach you safely and on time.
           </p>
         </section>
 

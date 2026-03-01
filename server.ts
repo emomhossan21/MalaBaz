@@ -22,8 +22,8 @@ async function seedData() {
   const { count: adminCount } = await supabase.from('admins').select('*', { count: 'exact', head: true });
   if (adminCount === 0) {
     await supabase.from('admins').insert([
-      { email: 'abdullah@malabaz.com', password: '0504', name: 'Emon Hossan Miazi' },
-      { email: 'azim@malabaz.com', password: 'azim@123', name: 'Azim Uddin' }
+      { email: 'abdullah@malabez.com', password: '0504', name: 'Emon Hossan Miazi' },
+      { email: 'azim@malabez.com', password: 'azim@123', name: 'Azim Uddin' }
     ]);
   }
 
@@ -188,7 +188,7 @@ async function startServer() {
     if (!admin) return res.status(404).json({error: "Admin not found"});
     
     let query = supabase.from('orders').select('*, users(name)').neq('status', 'pending').order('created_at', { ascending: false });
-    if (admin.email !== 'abdullah@malabaz.com') {
+    if (admin.email !== 'abdullah@malabez.com') {
       query = query.eq('updated_by', admin.name);
     }
     

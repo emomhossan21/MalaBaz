@@ -85,8 +85,8 @@ CREATE TABLE IF NOT EXISTS subscribers (
 
 -- Insert initial data
 INSERT INTO admins (email, password, name) VALUES 
-('abdullah@malabaz.com', '0504', 'Emon Hossan Miazi'),
-('azim@malabaz.com', 'azim@123', 'Azim Uddin')
+('abdullah@malabez.com', '0504', 'Emon Hossan Miazi'),
+('azim@malabez.com', 'azim@123', 'Azim Uddin')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO site_config (key, value) VALUES 

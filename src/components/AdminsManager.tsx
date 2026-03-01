@@ -103,7 +103,7 @@ export default function AdminsManager() {
                   </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{admin.email}</td>
                   <td className="px-6 py-4 text-right">
-                    {admin.email !== 'abdullah@malabaz.com' && (
+                    {admin.email !== 'abdullah@malabez.com' && (
                       <button 
                         onClick={() => handleDelete(admin.id)} 
                         className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"

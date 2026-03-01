@@ -3,8 +3,8 @@ import React from 'react';
 export default function FAQ() {
   const faqs = [
     {
-      question: "What is MALABAZ?",
-      answer: "MALABAZ is a premium e-commerce platform in Bangladesh offering high-quality products across various categories, ensuring the best shopping experience."
+      question: "What is MALABEZ?",
+      answer: "MALABEZ is a premium e-commerce platform in Bangladesh offering high-quality products across various categories, ensuring the best shopping experience."
     },
     {
       question: "How can I place an order?",

@@ -28,8 +28,8 @@ export default function ContactUs({ config }: { config: Record<string, string> }
             </div>
             <div>
               <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Email</p>
-              <a href={`mailto:${config.contact_email || 'support@malabaz.com'}`} className="text-lg font-bold dark:text-white hover:text-purple-600 transition-colors">
-                {config.contact_email || 'support@malabaz.com'}
+              <a href={`mailto:${config.contact_email || 'support@malabez.com'}`} className="text-lg font-bold dark:text-white hover:text-purple-600 transition-colors">
+                {config.contact_email || 'support@malabez.com'}
               </a>
             </div>
           </div>

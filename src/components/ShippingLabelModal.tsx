@@ -82,7 +82,7 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
             {/* Top Section */}
             <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
               <div>
-                <h1 className="text-4xl font-black uppercase tracking-tighter">MALABAZ</h1>
+                <h1 className="text-4xl font-black uppercase tracking-tighter">MALABEZ</h1>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black border-2 border-black px-2 py-1">
@@ -95,7 +95,7 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
             <div className="grid grid-cols-2 gap-4 border-b-2 border-black pb-4 mb-4">
               <div>
                 <p className="text-[10px] font-bold uppercase text-black">From:</p>
-                <p className="font-bold text-sm text-black">Malabaz Store</p>
+                <p className="font-bold text-sm text-black">Malabez Store</p>
                 <p className="text-xs text-black">Dhaka, Bangladesh</p>
                 <p className="text-xs text-black">Phone: +880 1234 567890</p>
               </div>

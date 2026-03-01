@@ -156,7 +156,7 @@ app.get("/api/admin/profile/:id/history", async (req, res) => {
   if (!admin) return res.status(404).json({error: "Admin not found"});
   
   let query = supabase.from('orders').select('*, users(name)').neq('status', 'pending').order('created_at', { ascending: false });
-  if (admin.email !== 'abdullah@malabaz.com') {
+  if (admin.email !== 'abdullah@malabez.com') {
     query = query.eq('updated_by', admin.name);
   }
   
