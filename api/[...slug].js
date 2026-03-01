@@ -8,8 +8,19 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Vercel already parses the body, so we only need express.json() for local development
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+    return next();
+  }
+  express.json({ limit: '50mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+    return next();
+  }
+  express.urlencoded({ limit: '50mb', extended: true })(req, res, next);
+});
 
 // API Routes
 app.get("/api/products", async (req, res) => {
@@ -82,25 +93,11 @@ app.post("/api/admin/upload", (req, res) => {
   if (!image || !fileName) return res.status(400).json({ error: "Missing image data or file name" });
 
   try {
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-    const safeFileName = `${Date.now()}-${fileName.replace(/[^a-z0-9.]/gi, '_').toLowerCase()}`;
-    
-    // On Vercel, we can only write to /tmp
-    const isVercel = process.env.VERCEL === '1';
-    const uploadsDir = isVercel ? '/tmp' : path.join(process.cwd(), "public", "uploads");
-    
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    
-    const filePath = path.join(uploadsDir, safeFileName);
-    fs.writeFileSync(filePath, buffer);
-    
-    const publicUrl = isVercel ? `/api/image/${safeFileName}` : `/uploads/${safeFileName}`;
-    res.json({ url: publicUrl });
+    // Return the base64 image directly to be saved in the database
+    // This avoids Vercel's ephemeral /tmp storage issues
+    res.json({ url: image });
   } catch (err) {
-    res.status(500).json({ error: "Failed to save image" });
+    res.status(500).json({ error: "Failed to process image" });
   }
 });
 
@@ -377,5 +374,13 @@ app.get("/api/admin/analytics", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
 
 export default app;

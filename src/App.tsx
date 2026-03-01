@@ -1355,7 +1355,7 @@ export default function App() {
       {/* Admin Panel Modal */}
       <AnimatePresence>
         {isAdminOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1367,9 +1367,9 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-6xl h-[90vh] bg-white dark:bg-slate-900 rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
+              className="relative w-full max-w-6xl h-[100dvh] md:h-[90vh] bg-white dark:bg-slate-900 md:rounded-[48px] overflow-hidden shadow-2xl flex flex-col"
             >
-              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="p-4 md:p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[#b8860b] rounded-2xl flex items-center justify-center text-white">
                     <Settings size={24} />
@@ -1421,61 +1421,61 @@ export default function App() {
                   </form>
                 </div>
               ) : (
-                <div className="flex-1 overflow-hidden flex">
+                <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                   {/* Sidebar */}
-                  <div className="w-64 border-r border-slate-100 dark:border-slate-800 p-6 flex flex-col gap-2">
+                  <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-800 p-4 md:p-6 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible shrink-0">
                     <button 
                       onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowCategoryManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold ${!showAnalytics && !showOrdersManager && !showAdminsManager && !showAdminProfile && !showAdminSupport && !showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold ${!showAnalytics && !showOrdersManager && !showAdminsManager && !showAdminProfile && !showAdminSupport && !showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
                       Management
                     </button>
                     <button 
                       onClick={() => { setShowAnalytics(false); setShowOrdersManager(true); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showOrdersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showOrdersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
                       <Package size={18} /> Orders
                     </button>
                     <button 
                       onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(true); setShowSubscribersManager(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminSupport ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminSupport ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
                       <MessageSquare size={18} /> Support
                     </button>
                     <button 
                       onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(true); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showSubscribersManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
                       <Mail size={18} /> Subscribers
                     </button>
                     <button 
                       onClick={() => { setShowAnalytics(true); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAnalytics ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAnalytics ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
-                      <BarChart2 size={18} /> Analytics Terminal
+                      <BarChart2 size={18} /> Analytics
                     </button>
                     {adminUser?.email === 'abdullah@malabaz.com' && (
                       <button 
                         onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(true); setShowAdminProfile(false); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
-                        className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminsManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                        className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminsManager ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                       >
                         <Shield size={18} /> Admins
                       </button>
                     )}
                     <button 
                       onClick={() => { setShowAnalytics(false); setShowOrdersManager(false); setShowAdminsManager(false); setShowAdminProfile(true); setShowAdminSupport(false); setShowSubscribersManager(false); }} 
-                      className={`w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminProfile ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
+                      className={`whitespace-nowrap md:w-full text-left px-4 py-3 rounded-xl font-bold flex items-center gap-2 ${showAdminProfile ? 'bg-[#b8860b] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-white'}`}
                     >
                       <UserIcon size={18} /> Profile
                     </button>
-                    <button onClick={() => setIsAdminAuthenticated(false)} className="mt-auto w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-bold flex items-center gap-2">
+                    <button onClick={() => setIsAdminAuthenticated(false)} className="whitespace-nowrap mt-auto md:w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 font-bold flex items-center gap-2">
                       <LogOut size={18} />
                       Logout
                     </button>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 overflow-y-auto p-8">
+                  <div className="flex-1 overflow-y-auto p-4 md:p-8">
                     {showAnalytics ? (
                       <AnalyticsDashboard />
                     ) : showOrdersManager ? (
@@ -1490,9 +1490,9 @@ export default function App() {
                       <AdminProfile adminUser={adminUser} setAdminUser={setAdminUser} />
                     ) : (
                       <>
-                        <div className="flex justify-between items-center mb-8">
-                          <h4 className="text-3xl font-black dark:text-white">Content Management</h4>
-                          <div className="flex gap-3">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+                          <h4 className="text-2xl md:text-3xl font-black dark:text-white">Content Management</h4>
+                          <div className="flex flex-wrap gap-3">
                             <button 
                               onClick={() => setShowCategoryManager(!showCategoryManager)}
                               className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
