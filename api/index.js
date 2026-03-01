@@ -11,6 +11,14 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Vercel strips the /api prefix, so we prepend it back if missing
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
+  next();
+});
+
 // API Routes
 app.get("/api/products", async (req, res) => {
   const { data, error } = await supabase.from('products').select('*');
