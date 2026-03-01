@@ -97,8 +97,6 @@ app.post("/api/admin/upload", (req, res) => {
     const filePath = path.join(uploadsDir, safeFileName);
     fs.writeFileSync(filePath, buffer);
     
-    // Note: On Vercel, /tmp is ephemeral, so the image will disappear.
-    // A real cloud storage solution (like Supabase Storage) is needed for production.
     const publicUrl = isVercel ? `/api/image/${safeFileName}` : `/uploads/${safeFileName}`;
     res.json({ url: publicUrl });
   } catch (err: any) {
