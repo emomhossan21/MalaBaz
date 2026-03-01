@@ -145,16 +145,11 @@ async function startServer() {
     if (!image || !fileName) return res.status(400).json({ error: "Missing image data or file name" });
 
     try {
-      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-      const buffer = Buffer.from(base64Data, 'base64');
-      const safeFileName = `${Date.now()}-${fileName.replace(/[^a-z0-9.]/gi, '_').toLowerCase()}`;
-      const filePath = path.join(uploadsDir, safeFileName);
-      
-      fs.writeFileSync(filePath, buffer);
-      const publicUrl = `/uploads/${safeFileName}`;
-      res.json({ url: publicUrl });
+      // Return the base64 image directly to be stored in the database
+      // This solves the issue of images disappearing on Vercel
+      res.json({ url: image });
     } catch (err: any) {
-      res.status(500).json({ error: "Failed to save image" });
+      res.status(500).json({ error: "Failed to process image" });
     }
   });
 

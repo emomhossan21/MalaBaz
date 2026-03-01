@@ -13,6 +13,7 @@ import UserSupport from './components/UserSupport';
 import AdminSupport from './components/AdminSupport';
 import AboutUs from './components/AboutUs';
 import SubscribersManager from './components/SubscribersManager';
+import { resizeImage } from './utils/imageUtils';
 
 export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -277,34 +278,30 @@ export default function App() {
     if (!file) return;
 
     setIsUploading(targetKey);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      try {
-        const res = await fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, fileName: file.name })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          if (isProduct && editingProduct) {
-            setEditingProduct({ ...editingProduct, image: data.url });
-          } else {
-            setTempConfig(prev => ({ ...prev, [targetKey]: data.url }));
-            // Auto-save for config images
-            await updateConfig(targetKey, data.url);
-          }
+    try {
+      const base64 = await resizeImage(file);
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, fileName: file.name })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (isProduct && editingProduct) {
+          setEditingProduct({ ...editingProduct, image: data.url });
         } else {
-          alert('Upload failed');
+          setTempConfig(prev => ({ ...prev, [targetKey]: data.url }));
+          // Auto-save for config images
+          await updateConfig(targetKey, data.url);
         }
-      } catch (err) {
-        alert('Upload error');
-      } finally {
-        setIsUploading(null);
+      } else {
+        alert('Upload failed');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      alert('Upload error');
+    } finally {
+      setIsUploading(null);
+    }
   };
 
   const updateConfig = async (key: string, value: string) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Lock, Upload, CheckCircle, XCircle, Truck, Package } from 'lucide-react';
+import { resizeImage } from '../utils/imageUtils';
 
 export default function AdminProfile({ adminUser, setAdminUser }: any) {
   const [password, setPassword] = useState('');
@@ -49,26 +50,22 @@ export default function AdminProfile({ adminUser, setAdminUser }: any) {
     if (!file) return;
 
     setUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64String = reader.result as string;
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64String, fileName: file.name })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setPhoto(data.url);
-        }
-      } catch (err) {
-        console.error('Upload failed', err);
-      } finally {
-        setUploading(false);
+    try {
+      const base64String = await resizeImage(file);
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64String, fileName: file.name })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPhoto(data.url);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Upload failed', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const getStatCount = (status: string) => {

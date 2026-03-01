@@ -90,25 +90,11 @@ app.post("/api/admin/upload", (req, res) => {
   if (!image || !fileName) return res.status(400).json({ error: "Missing image data or file name" });
 
   try {
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, 'base64');
-    const safeFileName = `${Date.now()}-${fileName.replace(/[^a-z0-9.]/gi, '_').toLowerCase()}`;
-    
-    // On Vercel, we can only write to /tmp
-    const isVercel = process.env.VERCEL === '1';
-    const uploadsDir = isVercel ? '/tmp' : path.join(process.cwd(), "public", "uploads");
-    
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    
-    const filePath = path.join(uploadsDir, safeFileName);
-    fs.writeFileSync(filePath, buffer);
-    
-    const publicUrl = isVercel ? `/api/image/${safeFileName}` : `/uploads/${safeFileName}`;
-    res.json({ url: publicUrl });
+    // Return the base64 image directly to be stored in the database
+    // This solves the issue of images disappearing on Vercel
+    res.json({ url: image });
   } catch (err) {
-    res.status(500).json({ error: "Failed to save image" });
+    res.status(500).json({ error: "Failed to process image" });
   }
 });
 
