@@ -15,9 +15,6 @@ This is an e-commerce website for selling clothes and fashion items online. User
 - JavaScript
 - CSS (ittadi)
 
-## 📸 Screenshots
-f8e98f6f5ff93de1d5888443ba1372d286a486e7
-
 ## 🔗 website link
 https://malabez.vercel.app/
 
