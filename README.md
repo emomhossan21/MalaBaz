@@ -19,7 +19,7 @@ This is an e-commerce website for selling clothes and fashion items online. User
 (Add some images of your website here)
 
 ## 🔗 website link
-malabez.shop
+https://malabez.vercel.app/
 
 ## 📂 How to Run Locally
 1. Clone the repository:
