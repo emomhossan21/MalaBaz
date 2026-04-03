@@ -13,13 +13,13 @@ This is an e-commerce website for selling clothes and fashion items online. User
 - HTML
 - CSS
 - JavaScript
-- (jodi React/Node use koro tahole add koro)
+- CSS (ittadi)
 
 ## 📸 Screenshots
 (Add some images of your website here)
 
-## 🔗 Live Demo
-(Add your live website link here, jodi thake)
+## 🔗 website link
+malabez.shop
 
 ## 📂 How to Run Locally
 1. Clone the repository:
