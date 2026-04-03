@@ -1,20 +1,27 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🛍️ Online Clothing Store Website
 
-# Run and deploy your MalaBez.shop
+This is an e-commerce website for selling clothes and fashion items online. Users can browse products, view details, and place orders easily.
 
-This contains everything you need to run your app locally.
+## 🚀 Features
+- 🧥 Browse different clothing categories
+- 🔍 View product details
+- 🛒 Add to cart system
+- 💳 Order placement (basic)
+- 📱 Responsive design (mobile-friendly)
 
-View your app in AI Studio: https://ai.studio/apps/3ede07c8-9596-4465-9896-5668686d76d3
+## 🛠️ Technologies Used
+- HTML
+- CSS
+- JavaScript
+- (jodi React/Node use koro tahole add koro)
 
-## Run Locally
+## 📸 Screenshots
+(Add some images of your website here)
 
-**Prerequisites:**  Node.js
+## 🔗 Live Demo
+(Add your live website link here, jodi thake)
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 📂 How to Run Locally
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-emonhossan12/your-repo-MalaBaz.git
