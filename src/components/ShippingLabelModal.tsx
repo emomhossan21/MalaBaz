@@ -32,14 +32,29 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
 
   const handleDownloadPDF = async () => {
     const element = document.getElementById('printable-label-content');
-    if (!element) return;
+    const container = document.getElementById('printable-label');
+    if (!element || !container) return;
     
     try {
       setDownloading(true);
+      
       const canvas = await html2canvas(element, { 
         scale: 2,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        onclone: (doc) => {
+          // Temporarily fix oklch colors for html2canvas
+          const elems = doc.querySelectorAll('*');
+          elems.forEach((el) => {
+            const computed = window.getComputedStyle(el);
+            if (computed && computed.backgroundColor && computed.backgroundColor.includes('oklch')) {
+              (el as HTMLElement).style.backgroundColor = '#ffffff';
+            }
+          });
+        }
       });
+      
       const imgData = canvas.toDataURL('image/png');
       
       const pdf = new jsPDF({
@@ -48,10 +63,22 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
         format: 'a4'
       });
       
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const maxPdfWidth = pdf.internal.pageSize.getWidth();
+      const maxPdfHeight = pdf.internal.pageSize.getHeight();
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Get exact image properties
+      const imgProps = pdf.getImageProperties(imgData);
+      
+      // Calculate ratio to fit within margins
+      const ratio = Math.min((maxPdfWidth - 20) / imgProps.width, (maxPdfHeight - 20) / imgProps.height);
+      
+      const pdfWidth = imgProps.width * ratio;
+      const pdfHeight = imgProps.height * ratio;
+      
+      const marginX = (maxPdfWidth - pdfWidth) / 2;
+      const marginY = 10;
+      
+      pdf.addImage(imgData, 'PNG', marginX, marginY, pdfWidth, pdfHeight);
       pdf.save(`MALABEZ_Order_${order.id}.pdf`);
     } catch (err) {
       console.error('Failed to generate PDF', err);
@@ -95,142 +122,93 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
         </div>
 
         {/* Printable Area */}
-        <div className="p-8 overflow-y-auto print:overflow-visible print:p-0" id="printable-label">
-          <div id="printable-label-content" className="border-4 border-double border-black p-6 max-w-[4.2in] mx-auto bg-white text-black font-sans leading-relaxed">
+        <div className="p-4 overflow-y-auto print:overflow-visible print:p-0" id="printable-label">
+          <div id="printable-label-content" className="border-2 p-4 mx-auto font-sans leading-relaxed" style={{ borderColor: '#000', backgroundColor: '#fff', color: '#000', maxWidth: '3.5in' }}>
             
-            {/* Top Logo & Barcode Grid - Properly aligned */}
-            <div className="flex justify-between items-center border-b-2 border-black pb-4 mb-4">
+            {/* Top Logo & Barcode Grid */}
+            <div className="flex justify-between items-center border-b-2 pb-3 mb-3" style={{ borderColor: '#000' }}>
               <div>
-                <h1 className="text-3xl font-black uppercase tracking-tight text-[#b8860b]">MALABEZ</h1>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Premium Clothing & Lifestyle</p>
+                <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: '#b8860b' }}>MALABEZ</h1>
+                <p className="text-[8px] font-bold uppercase tracking-widest leading-none" style={{ color: '#64748b' }}>Premium Clothing & Lifestyle</p>
               </div>
               <div className="text-right">
-                <div className="inline-block text-lg font-black bg-black text-white px-3 py-1 rounded">
+                <div className="inline-block text-sm font-black px-2 py-1 rounded" style={{ backgroundColor: '#000', color: '#fff' }}>
                   {order.payment_method === 'cod' ? 'C.O.D.' : 'PAID'}
                 </div>
               </div>
             </div>
 
             {/* Courier Waybill Barcode Section */}
-            <div className="border border-black p-2 rounded mb-4 text-center bg-slate-50">
-              <div className="text-xs font-bold uppercase tracking-wider mb-1">Waybill tracking no:</div>
-              <div className="h-12 w-full bg-black flex items-center justify-center text-white font-mono text-xs tracking-[0.5rem] overflow-hidden relative">
-                {/* Simulated high-quality barcode */}
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'repeating-linear-gradient(90deg, #000, #000 3px, #fff 3px, #fff 6px, #000 6px, #000 7px, #fff 7px, #fff 9px)',
-                  backgroundSize: '100% 100%'
-                }}></div>
+            <div className="border p-2 rounded mb-3 text-center" style={{ borderColor: '#000', backgroundColor: '#f8fafc' }}>
+              <div className="text-[10px] font-bold uppercase tracking-wider mb-1">Waybill tracking no:</div>
+              <div className="h-10 w-full flex items-center justify-center font-mono overflow-hidden relative" style={{ backgroundColor: '#fff' }}>
+                {[2, 1, 3, 1, 1, 2, 4, 1, 2, 2, 1, 3, 1, 2, 1, 4, 1, 1, 2, 3, 1, 2, 2, 1, 3, 1, 1, 2, 4, 1, 2, 2, 1, 1, 2, 3, 1].map((w, i) => (
+                  <div key={i} className="h-full" style={{ width: `${w * 2}px`, marginRight: `${(i % 3) + 1}px`, backgroundColor: '#000' }}></div>
+                ))}
               </div>
-              <p className="text-[11px] font-mono mt-1 font-bold tracking-wider mb-0 text-black">#{order.id}</p>
+              <p className="text-[10px] font-mono mt-1 font-bold tracking-wider mb-0" style={{ color: '#000' }}>{1200000000 + order.id}</p>
             </div>
 
-            {/* Dispatch details nicely aligned in box blocks */}
-            <div className="grid grid-cols-2 gap-4 border border-black p-3 rounded mb-4 text-xs">
-              <div className="border-r border-black/20 pr-3">
-                <p className="text-[9px] font-bold uppercase text-slate-500 tracking-wider mb-1 h-3">Sender Details:</p>
-                <p className="font-extrabold text-black text-sm mb-1 leading-none">MALABEZ Store</p>
-                <p className="text-[11px] text-slate-800 leading-tight mb-1">{config.contact_address || 'Dhaka, Bangladesh'}</p>
-                <p className="text-[11px] font-bold text-black leading-none mt-1">📞 {config.contact_phone || '+880 1234 567890'}</p>
+            {/* Dispatch details */}
+            <div className="grid grid-cols-2 gap-3 border p-2 rounded mb-3 text-[10px]" style={{ borderColor: '#000' }}>
+              <div className="border-r pr-2" style={{ borderColor: 'rgba(0,0,0,0.2)' }}>
+                <p className="text-[8px] font-bold uppercase tracking-wider mb-1 h-2" style={{ color: '#64748b' }}>Sender Details:</p>
+                <p className="font-extrabold text-xs mb-1 leading-none" style={{ color: '#000' }}>MALABEZ Store</p>
+                <p className="text-[10px] leading-tight mb-1" style={{ color: '#1e293b' }}>{config.contact_address || 'Dhaka, Bangladesh'}</p>
+                <p className="text-[10px] font-bold leading-none mt-1" style={{ color: '#000' }}>📞 {config.contact_phone || '+880 1234 567890'}</p>
               </div>
               <div className="pl-1">
-                <p className="text-[9px] font-bold uppercase text-slate-500 tracking-wider mb-1 h-3">Receiver Details:</p>
-                <p className="font-extrabold text-black text-sm mb-1 leading-none">{order.user_name || 'Guest Customer'}</p>
-                <p className="text-[11px] text-slate-800 leading-tight mb-1">{order.shipping_address}</p>
-                <p className="text-[11px] text-slate-800 leading-none">{order.city} - {order.zip_code}</p>
-                <p className="text-[11px] font-extrabold text-black leading-none mt-2">📞 {order.payment_phone || 'N/A'}</p>
+                <p className="text-[8px] font-bold uppercase tracking-wider mb-1 h-2" style={{ color: '#64748b' }}>Receiver Details:</p>
+                <p className="font-extrabold text-xs mb-1 leading-none" style={{ color: '#000' }}>{order.user_name || 'Guest Customer'}</p>
+                <p className="text-[10px] leading-tight mb-1" style={{ color: '#1e293b' }}>{order.shipping_address}</p>
+                <p className="text-[10px] leading-none" style={{ color: '#1e293b' }}>{order.city} - {order.zip_code}</p>
+                <p className="text-[10px] font-extrabold leading-none mt-2" style={{ color: '#000' }}>📞 {order.payment_phone || 'N/A'}</p>
               </div>
             </div>
 
-            {/* Metadata (Service order & payment details list) */}
-            <div className="border border-black rounded p-3 mb-4 bg-slate-50 text-xs text-black">
-              <div className="grid grid-cols-2 gap-y-1.5 font-medium">
-                <div className="flex justify-between border-b border-slate-200 pb-1 mr-2">
-                  <span className="text-slate-500 font-semibold text-[10px] uppercase">Order Reference:</span>
+            {/* Metadata */}
+            <div className="border rounded p-2 mb-3 text-[10px]" style={{ borderColor: '#000', backgroundColor: '#f8fafc', color: '#000' }}>
+              <div className="grid grid-cols-2 gap-y-1 font-medium">
+                <div className="flex justify-between border-b pb-1 mr-2" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="font-semibold text-[8px] uppercase" style={{ color: '#64748b' }}>Order Ref:</span>
                   <span className="font-bold">#{order.id}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 pb-1">
-                  <span className="text-slate-500 font-semibold text-[10px] uppercase">Waybill Date:</span>
+                <div className="flex justify-between border-b pb-1" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="font-semibold text-[8px] uppercase" style={{ color: '#64748b' }}>Date:</span>
                   <span className="font-bold">{new Date(order.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 pb-1 mr-2">
-                  <span className="text-slate-500 font-semibold text-[10px] uppercase">Service Type:</span>
-                  <span className="font-bold">Standard Delivery</span>
+                <div className="flex justify-between border-b pb-1 mr-2" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="font-semibold text-[8px] uppercase" style={{ color: '#64748b' }}>Service:</span>
+                  <span className="font-bold">Standard</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-200 pb-1">
-                  <span className="text-slate-500 font-semibold text-[10px] uppercase">Method:</span>
+                <div className="flex justify-between border-b pb-1" style={{ borderColor: '#e2e8f0' }}>
+                  <span className="font-semibold text-[8px] uppercase" style={{ color: '#64748b' }}>Method:</span>
                   <span className="font-bold uppercase">{order.payment_method}</span>
                 </div>
               </div>
             </div>
 
-            {/* Serialized Items Table ("siriyale and laine rakha path") */}
-            <div className="border border-black rounded overflow-hidden mb-4">
-              <p className="text-[9px] font-bold uppercase text-white bg-black px-3 py-1">Order Items Details List (SL/Serial Order)</p>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[11px] text-left">
-                  <thead>
-                    <tr className="bg-slate-100 border-b border-black text-black font-bold">
-                      <th className="px-3 py-1.5 border-r border-black w-10 text-center">SL</th>
-                      <th className="px-3 py-1.5 border-r border-black">Item Name</th>
-                      <th className="px-3 py-1.5 border-r border-black text-center w-12">Qty</th>
-                      <th className="px-3 py-1.5 text-right w-20">Price</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/20 text-slate-900 font-medium">
-                    {items.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="px-3 py-1.5 border-r border-black/20 text-center text-slate-500 font-semibold">{idx + 1}</td>
-                        <td className="px-3 py-1.5 border-r border-black/20 font-bold truncate max-w-[170px]">{item.product_name || 'Product Item'}</td>
-                        <td className="px-3 py-1.5 border-r border-black/20 text-center">{item.quantity}</td>
-                        <td className="px-3 py-1.5 text-right font-semibold">৳{(item.price * item.quantity).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* Total Items Count */}
+            <div className="border rounded p-2 mb-3 text-center" style={{ borderColor: '#000', backgroundColor: '#f8fafc', color: '#000' }}>
+              <span className="font-bold text-[10px] uppercase tracking-wider">Total Items Qty: <span className="text-xs font-black">{items.reduce((sum, item) => sum + item.quantity, 0)}</span></span>
             </div>
 
             {/* Price breakdown and Payable Cash details */}
-            <div className="border border-black rounded p-3 mb-4 text-xs font-semibold">
-              <div className="space-y-1.5 text-slate-600">
+            <div className="border rounded p-2 text-[10px] font-semibold" style={{ borderColor: '#000' }}>
+              <div className="space-y-1" style={{ color: '#475569' }}>
                 <div className="flex justify-between">
-                  <span>Subtotal Amount:</span>
+                  <span>Subtotal:</span>
                   <span>৳{subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between pb-1 border-b border-slate-200">
-                  <span>Shipping Fee:</span>
+                <div className="flex justify-between pb-1 border-b" style={{ borderColor: '#e2e8f0' }}>
+                  <span>Shipping:</span>
                   <span>৳{deliveryCharge.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-lg font-black text-black pt-1">
-                  <span>Grand Total:</span>
-                  <span className="text-[#b8860b]">৳{order.total.toLocaleString()}</span>
+                <div className="flex justify-between items-center text-base font-black pt-1" style={{ color: '#000' }}>
+                  <span>Total:</span>
+                  <span style={{ color: '#b8860b' }}>৳{order.total.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
-
-            {/* Courier instruction / COD status - highly helpful for deliveries */}
-            {order.payment_method === 'cod' ? (
-              <div className="border-2 border-black bg-[#b8860b]/10 text-black p-3 rounded text-center mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#9a700a] mb-0.5">Courier COD Instruction</p>
-                <p className="text-lg font-black leading-tight text-slate-900">
-                  Please Collect: <span className="text-xl underline">৳{order.total.toLocaleString()}</span> Cash
-                </p>
-              </div>
-            ) : (
-              <div className="border-2 border-green-600 bg-green-50 text-green-800 p-3 rounded text-center mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-0.5">Prepaid Status</p>
-                <p className="text-lg font-black leading-tight text-green-700">
-                  PAID ORDER - DO NOT COLLECT CASH
-                </p>
-                {order.transaction_id && (
-                  <p className="text-[9px] font-mono mt-0.5">TrxID: {order.transaction_id}</p>
-                )}
-              </div>
-            )}
-
-            {/* Terms Footer */}
-            <div className="text-center text-[8px] text-slate-400 mt-4 uppercase tracking-widest">
-              Generated by MALABEZ Automated Waybill Engine
             </div>
 
           </div>
@@ -239,6 +217,10 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
       
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
+          @page {
+            margin: 0;
+            size: auto;
+          }
           body * {
             visibility: hidden;
           }
@@ -250,8 +232,13 @@ export default function ShippingLabelModal({ order, onClose }: { order: any, onC
             left: 0;
             top: 0;
             width: 100%;
-            padding: 0;
+            padding: 20px !important;
             margin: 0;
+          }
+          #printable-label-content {
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 3.5in !important;
           }
         }
       `}} />

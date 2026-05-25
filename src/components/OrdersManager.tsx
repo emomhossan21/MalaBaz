@@ -6,6 +6,7 @@ export default function OrdersManager({ adminUser }: { adminUser: { id: number, 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [printingOrder, setPrintingOrder] = useState<any>(null);
 
   useEffect(() => {
@@ -46,18 +47,41 @@ export default function OrdersManager({ adminUser }: { adminUser: { id: number, 
   }
 
   const filteredOrders = orders.filter(order => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'cod') return order.payment_method?.startsWith('cod');
-    if (activeTab === 'bkash') return order.payment_method === 'bkash';
-    if (activeTab === 'nagad') return order.payment_method === 'nagad';
-    if (activeTab === 'rocket') return order.payment_method === 'rocket';
-    return true;
+    // Filter by tab
+    let matchesTab = true;
+    if (activeTab === 'cod') matchesTab = order.payment_method?.startsWith('cod');
+    else if (activeTab === 'bkash') matchesTab = order.payment_method === 'bkash';
+    else if (activeTab === 'nagad') matchesTab = order.payment_method === 'nagad';
+    else if (activeTab === 'rocket') matchesTab = order.payment_method === 'rocket';
+    
+    // Filter by search query (Order ID, Customer Name, Phone, or Tracking Number)
+    let matchesSearch = true;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const trackingNumber = (1200000000 + order.id).toString();
+      matchesSearch = 
+        order.id.toString() === q ||
+        trackingNumber === q ||
+        (order.user_name && order.user_name.toLowerCase().includes(q)) ||
+        (order.payment_phone && order.payment_phone.includes(q));
+    }
+
+    return matchesTab && matchesSearch;
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
         <h4 className="text-3xl font-black dark:text-white">Order Management</h4>
+        <div className="relative">
+          <input 
+            type="text" 
+            placeholder="Search Order ID, Tracking No, Name, or Phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-80 pl-4 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-[#b8860b] outline-none dark:text-white"
+          />
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2">
@@ -100,7 +124,10 @@ export default function OrdersManager({ adminUser }: { adminUser: { id: number, 
               )}
               {filteredOrders.map(order => (
                 <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-6 py-4 font-bold dark:text-white">#{order.id}</td>
+                  <td className="px-6 py-4 dark:text-white">
+                    <div className="font-bold">#{order.id}</div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-100 dark:border-slate-800 tracking-wider">WB: {1200000000 + order.id}</div>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="dark:text-white font-medium">{order.user_name || 'Guest'}</div>
                     <div className="text-xs text-slate-500">{order.shipping_address}, {order.city} - {order.zip_code}</div>
