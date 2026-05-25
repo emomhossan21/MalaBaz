@@ -70,11 +70,8 @@ export default function App() {
     }
   };
 
-  const [config, setConfig] = useState<Record<string, string>>({
-    brand_story_image: 'https://images.unsplash.com/photo-1564121211835-e88c852648ab?auto=format&fit=crop&q=80&w=800',
-    aesthetic_refinement_image: 'https://images.unsplash.com/photo-1573855619003-97b4799dcd8b?auto=format&fit=crop&q=80&w=1920',
-    hero_image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1920'
-  });
+  const [config, setConfig] = useState<Record<string, string>>({});
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -134,9 +131,11 @@ export default function App() {
         } else {
           console.error("Error fetching config:", data);
         }
+        setIsConfigLoaded(true);
       })
       .catch(err => {
         console.error("Error fetching config:", err);
+        setIsConfigLoaded(true);
       });
 
     fetch('/api/categories')
@@ -537,14 +536,13 @@ export default function App() {
       {activePage === 'home' ? (
         <>
           {/* Hero Section */}
-          <header className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden">
-        <img 
-          src={config.hero_image} 
-          className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1920';
-          }}
-        />
+          <header className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden bg-slate-900">
+        {isConfigLoaded && config.hero_image && (
+          <img 
+            src={config.hero_image || undefined} 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-orange-900/40 via-black/30 to-transparent" />
         
         <div className="relative z-10 max-w-4xl px-4">
@@ -619,12 +617,9 @@ export default function App() {
                 onClick={() => setSelectedProduct(product)}
               >
                 <img 
-                  src={product.image} 
+                  src={product.image || undefined} 
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1594932224828-b4b057b69b3d?auto=format&fit=crop&q=80&w=800';
-                  }}
                 />
                 <div className="absolute top-6 left-6 flex flex-col gap-2">
                   <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
@@ -676,14 +671,13 @@ export default function App() {
               viewport={{ once: true }}
               className="relative"
             >
-              <div className="aspect-[4/5] rounded-[60px] overflow-hidden shadow-2xl">
-                <img 
-                  src={config.brand_story_image} 
-                  className="w-full h-full object-cover" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=800';
-                  }}
-                />
+              <div className="aspect-[4/5] rounded-[60px] overflow-hidden shadow-2xl bg-slate-100 dark:bg-slate-800">
+                {isConfigLoaded && config.brand_story_image && (
+                  <img 
+                    src={config.brand_story_image || undefined} 
+                    className="w-full h-full object-cover" 
+                  />
+                )}
               </div>
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#b8860b] rounded-full flex items-center justify-center text-white font-black text-center p-4 rotate-12 shadow-xl">
                 ESTD. <br /> 2026
@@ -723,13 +717,12 @@ export default function App() {
       {/* Newsletter Section */}
       <section className="max-w-7xl mx-auto px-4 py-32">
         <div className="bg-slate-900 dark:bg-slate-900/50 rounded-[64px] p-12 md:p-24 relative overflow-hidden border border-slate-800 group shadow-2xl">
-          <img 
-            src={config.aesthetic_refinement_image} 
-            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1573855619003-97b4799dcd8b?auto=format&fit=crop&q=80&w=1920';
-            }}
-          />
+          {isConfigLoaded && config.aesthetic_refinement_image && (
+            <img 
+              src={config.aesthetic_refinement_image || undefined} 
+              className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-transparent" />
           <div className="relative z-10 max-w-2xl">
             <h3 className="text-5xl md:text-7xl font-serif font-black text-white tracking-tighter mb-8 leading-[0.9]">
@@ -765,7 +758,7 @@ export default function App() {
       ) : activePage === 'faq' ? (
         <FAQ />
       ) : activePage === 'contact' ? (
-        <ContactUs config={config} />
+        isConfigLoaded ? <ContactUs config={config} /> : <div className="h-96 flex items-center justify-center dark:text-white">Loading...</div>
       ) : activePage === 'support' ? (
         <UserSupport user={user} />
       ) : activePage === 'about' ? (
@@ -942,7 +935,7 @@ export default function App() {
                   <div className="space-y-6">
                     {cart.map((item) => (
                       <div key={item.id} className="flex gap-4">
-                        <img src={item.image} className="w-20 h-20 object-cover rounded-lg bg-slate-100 dark:bg-slate-800" referrerPolicy="no-referrer" />
+                        <img src={item.image || undefined} className="w-20 h-20 object-cover rounded-lg bg-slate-100 dark:bg-slate-800" referrerPolicy="no-referrer" />
                         <div className="flex-1">
                           <h4 className="font-semibold text-sm dark:text-white">{item.name}</h4>
                           <p className="text-slate-500 text-xs mb-2">৳{item.price.toLocaleString()}</p>
@@ -1199,7 +1192,7 @@ export default function App() {
                         <div className="space-y-3">
                           {order.items.map((item: any) => (
                             <div key={item.id} className="flex items-center gap-4">
-                              <img src={item.image} className="w-12 h-12 rounded-lg object-cover bg-slate-200 dark:bg-slate-700" />
+                              <img src={item.image || undefined} className="w-12 h-12 rounded-lg object-cover bg-slate-200 dark:bg-slate-700" />
                               <div className="flex-1">
                                 <p className="font-semibold text-sm dark:text-white">{item.name}</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Qty: {item.quantity} × ৳{item.price.toLocaleString()}</p>
@@ -1243,11 +1236,8 @@ export default function App() {
               
               <div className="w-full md:w-1/2 aspect-square md:aspect-auto bg-slate-100 dark:bg-slate-800">
                 <img 
-                  src={selectedProduct.image} 
+                  src={selectedProduct.image || undefined} 
                   className="w-full h-full object-cover" 
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1594932224828-b4b057b69b3d?auto=format&fit=crop&q=80&w=800';
-                  }}
                 />
               </div>
               
@@ -1601,7 +1591,7 @@ export default function App() {
                           </div>
                           {tempConfig.hero_image && (
                             <div className="h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                              <img src={tempConfig.hero_image} className="w-full h-full object-cover" alt="Preview" />
+                              <img src={tempConfig.hero_image || undefined} className="w-full h-full object-cover" alt="Preview" />
                             </div>
                           )}
                         </div>
@@ -1642,7 +1632,7 @@ export default function App() {
                           </div>
                           {tempConfig.brand_story_image && (
                             <div className="h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                              <img src={tempConfig.brand_story_image} className="w-full h-full object-cover" alt="Preview" />
+                              <img src={tempConfig.brand_story_image || undefined} className="w-full h-full object-cover" alt="Preview" />
                             </div>
                           )}
                         </div>
@@ -1683,7 +1673,7 @@ export default function App() {
                           </div>
                           {tempConfig.aesthetic_refinement_image && (
                             <div className="h-20 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                              <img src={tempConfig.aesthetic_refinement_image} className="w-full h-full object-cover" alt="Preview" />
+                              <img src={tempConfig.aesthetic_refinement_image || undefined} className="w-full h-full object-cover" alt="Preview" />
                             </div>
                           )}
                         </div>
@@ -1771,6 +1761,104 @@ export default function App() {
                             </button>
                           </div>
                         </div>
+
+                        <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-700">
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Contact Phone</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="e.g. +880 1234 567890"
+                                value={tempConfig.contact_phone || ''}
+                                onChange={(e) => setTempConfig({ ...tempConfig, contact_phone: e.target.value })}
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                              />
+                              <button 
+                                disabled={isSavingConfig === 'contact_phone'}
+                                onClick={() => updateConfig('contact_phone', tempConfig.contact_phone)}
+                                className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                              >
+                                {isSavingConfig === 'contact_phone' ? '...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Contact Email</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="email" 
+                                placeholder="e.g. support@malabez.com"
+                                value={tempConfig.contact_email || ''}
+                                onChange={(e) => setTempConfig({ ...tempConfig, contact_email: e.target.value })}
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                              />
+                              <button 
+                                disabled={isSavingConfig === 'contact_email'}
+                                onClick={() => updateConfig('contact_email', tempConfig.contact_email)}
+                                className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                              >
+                                {isSavingConfig === 'contact_email' ? '...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Contact Address</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="e.g. Dhaka, Bangladesh"
+                                value={tempConfig.contact_address || ''}
+                                onChange={(e) => setTempConfig({ ...tempConfig, contact_address: e.target.value })}
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                              />
+                              <button 
+                                disabled={isSavingConfig === 'contact_address'}
+                                onClick={() => updateConfig('contact_address', tempConfig.contact_address)}
+                                className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                              >
+                                {isSavingConfig === 'contact_address' ? '...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Facebook URL</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="https://facebook.com/..."
+                                value={tempConfig.contact_facebook || ''}
+                                onChange={(e) => setTempConfig({ ...tempConfig, contact_facebook: e.target.value })}
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                              />
+                              <button 
+                                disabled={isSavingConfig === 'contact_facebook'}
+                                onClick={() => updateConfig('contact_facebook', tempConfig.contact_facebook)}
+                                className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                              >
+                                {isSavingConfig === 'contact_facebook' ? '...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Instagram URL</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="https://instagram.com/..."
+                                value={tempConfig.contact_instagram || ''}
+                                onChange={(e) => setTempConfig({ ...tempConfig, contact_instagram: e.target.value })}
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm dark:text-white"
+                              />
+                              <button 
+                                disabled={isSavingConfig === 'contact_instagram'}
+                                onClick={() => updateConfig('contact_instagram', tempConfig.contact_instagram)}
+                                className="bg-[#b8860b] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#9a700a] transition-colors disabled:opacity-50"
+                              >
+                                {isSavingConfig === 'contact_instagram' ? '...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1791,7 +1879,7 @@ export default function App() {
                             <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-4">
-                                  <img src={p.image} className="w-12 h-12 rounded-xl object-cover" />
+                                  <img src={p.image || undefined} className="w-12 h-12 rounded-xl object-cover" />
                                   <span className="font-bold dark:text-white">{p.name}</span>
                                 </div>
                               </td>

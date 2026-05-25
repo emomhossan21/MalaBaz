@@ -145,7 +145,7 @@ app.get("/api/admin/profile/:id/history", async (req, res) => {
   if (!admin) return res.status(404).json({error: "Admin not found"});
   
   let query = supabase.from('orders').select('*, users(name)').neq('status', 'pending').order('created_at', { ascending: false });
-  if (admin.email !== 'abdullah@malabaz.com') {
+  if (admin.email !== 'abdullah@malabez.com') {
     query = query.eq('updated_by', admin.name);
   }
   
@@ -200,7 +200,7 @@ app.get("/api/config", async (req, res) => {
 
 app.post("/api/admin/config", async (req, res) => {
   const { key, value } = req.body;
-  const { error } = await supabase.from('site_config').upsert([{ key, value }]);
+  const { error } = await supabase.from('site_config').upsert([{ key, value }], { onConflict: 'key' });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });

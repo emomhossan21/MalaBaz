@@ -201,7 +201,7 @@ app.get("/api/config", async (req, res) => {
 
 app.post("/api/admin/config", async (req, res) => {
   const { key, value } = req.body;
-  const { error } = await supabase.from('site_config').upsert([{ key, value }]);
+  const { error } = await supabase.from('site_config').upsert([{ key, value }], { onConflict: 'key' });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ success: true });
 });

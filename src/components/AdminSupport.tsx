@@ -152,7 +152,7 @@ export default function AdminSupport({ adminUser }: { adminUser: any }) {
                 <div key={idx} className={`flex ${msg.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] rounded-2xl p-4 ${msg.sender_type === 'admin' ? 'bg-[#b8860b] text-white rounded-tr-sm' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 dark:text-white rounded-tl-sm shadow-sm'}`}>
                     {msg.image_url && (
-                      <img src={msg.image_url} alt="Attachment" className="max-w-full rounded-lg mb-2" />
+                      <img src={msg.image_url || undefined} alt="Attachment" className="max-w-full rounded-lg mb-2" />
                     )}
                     <p className="whitespace-pre-wrap text-sm">{msg.message}</p>
                     <p className={`text-[10px] mt-2 text-right ${msg.sender_type === 'admin' ? 'text-white/70' : 'text-slate-400'}`}>
@@ -169,7 +169,7 @@ export default function AdminSupport({ adminUser }: { adminUser: any }) {
               <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
                 {image && (
                   <div className="relative inline-block mb-4">
-                    <img src={image} alt="Upload preview" className="h-20 rounded-lg border border-slate-200" />
+                    <img src={image || undefined} alt="Upload preview" className="h-20 rounded-lg border border-slate-200" />
                     <button type="button" onClick={() => setImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1">
                       <X size={12} />
                     </button>

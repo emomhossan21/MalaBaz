@@ -82,7 +82,7 @@ export default function AdminProfile({ adminUser, setAdminUser }: any) {
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 text-center">
             <div className="relative w-32 h-32 mx-auto mb-4">
               {photo ? (
-                <img src={photo} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-slate-100 dark:border-slate-800" />
+                <img src={photo || undefined} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-slate-100 dark:border-slate-800" />
               ) : (
                 <div className="w-full h-full bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
                   <User size={48} className="text-slate-400" />

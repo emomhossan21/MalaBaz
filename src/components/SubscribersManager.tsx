@@ -24,7 +24,7 @@ export default function SubscribersManager() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', 'malabaz_subscribers.csv');
+    link.setAttribute('download', 'malabez_subscribers.csv');
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
