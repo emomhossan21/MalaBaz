@@ -1,20 +1,21 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 🛍️ Online Clothing Store Website
 
-# Run and deploy your AI Studio app
+This is an e-commerce website for selling clothes and fashion items online. Users can browse products, view details, and place orders easily.
 
-This contains everything you need to run your app locally.
+## 🚀 Features
+- 🧥 Browse different clothing categories
+- 🔍 View product details
+- 🛒 Add to cart system
+- 💳 Order placement (basic)
+- 📱 Responsive design (mobile-friendly)
 
-View your app in AI Studio: https://ai.studio/apps/3ede07c8-9596-4465-9896-5668686d76d3
+## 🛠️ Technologies Used
+- HTML
+- CSS
+- JavaScript
+- (jodi React/Node use koro tahole add koro)
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 📂 How to Run Locally
+1. Clone the repository:
+   ```bash
+   git clone (https://github.com/emomhossan21/MalaBaz/
